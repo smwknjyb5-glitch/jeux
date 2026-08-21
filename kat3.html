@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>محاكاة القطع بالسكين</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; user-select:none; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#0f1220; font-family: 'Tahoma', 'Segoe UI', sans-serif; touch-action:none; }
+  #gameCanvas { display:block; background: linear-gradient(180deg, #1b1f3b 0%, #0f1220 100%); cursor:none; }
+
+  #hud {
+    position:fixed; top:0; right:0; left:0; z-index:10;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px; pointer-events:none;
+    color:#fff; text-shadow:0 2px 6px rgba(0,0,0,.6);
+  }
+  #hud .box { background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.15); border-radius:14px; padding:8px 16px; font-size:18px; font-weight:bold; backdrop-filter: blur(4px); }
+  #lives { color:#ff5d73; letter-spacing:3px; font-size:20px; }
+
+  #overlay {
+    position:fixed; inset:0; z-index:20;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(10,10,20,.85); color:#fff; text-align:center; padding:20px;
+  }
+  #overlay h1 { font-size:32px; margin-bottom:10px; color:#ffd166; }
+  #overlay p { font-size:16px; opacity:.85; margin-bottom:22px; max-width:420px; line-height:1.7; }
+  #overlay .final { font-size:22px; margin-bottom:18px; color:#7bffb0; display:none; }
+  #startBtn {
+    background:linear-gradient(135deg,#ff5d73,#ff9a5d); border:none; color:#fff; font-size:20px;
+    padding:14px 42px; border-radius:40px; cursor:pointer; font-weight:bold;
+    box-shadow:0 8px 20px rgba(255,93,115,.4);
+  }
+  #startBtn:active { transform:scale(0.96); }
+  .hint { position:fixed; bottom:14px; right:0; left:0; text-align:center; color:rgba(255,255,255,.5); font-size:13px; z-index:5; }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" style="display:none;">
+  <div class="box">النقاط: <span id="score">0</span></div>
+  <div class="box" id="lives">❤️❤️❤️</div>
+</div>
+
+<div class="hint" style="display:none;" id="hintText">اسحب إصبعك أو الفأرة فوق العناصر لتقطيعها — تجنّب القنبلة 💣</div>
+
+<div id="overlay">
+  <h1>🔪 محاكاة القطع بالسكين</h1>
+  <p>عناصر تُقذف من الأسفل نحو الأعلى، مرّر السكين (السحب بالفأرة أو الإصبع) فوقها لتقطيعها إلى نصفين واكسب النقاط. احذر من القنبلة 💣، فإذا قطعتها تخسر اللعبة! تفوتك 3 عناصر فقط تنتهي اللعبة.</p>
+  <div class="final" id="finalScore"></div>
+  <button id="startBtn">ابدأ اللعب</button>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, DPR;
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const hud = document.getElementById('hud');
+  const hintText = document.getElementById('hintText');
+  const scoreEl = document.getElementById('score');
+  const livesEl = document.getElementById('lives');
+  const finalScoreEl = document.getElementById('finalScore');
+
+  const GRAVITY = 0.32;
+  let objects = [];
+  let particles = [];
+  let trail = [];
+  let score = 0;
+  let lives = 3;
+  let running = false;
+  let spawnTimer = 0;
+  let spawnInterval = 70;
+  let frame = 0;
+
+  const TYPES = [
+    { name:'بطيخ',  rIn:'#ff4d6d', rOut:'#2e7d32', seedColor:'#1b1b1b', r:46, points:1 },
+    { name:'برتقال', rIn:'#ffb74d', rOut:'#ef6c00', seedColor:'#fff3e0', r:34, points:1 },
+    { name:'ليمون', rIn:'#fff59d', rOut:'#c0ca33', seedColor:'#fff9c4', r:28, points:1 },
+    { name:'عنب',   rIn:'#8e24aa', rOut:'#4a148c', seedColor:'#ce93d8', r:24, points:2 },
+  ];
+  const BOMB = { name:'قنبلة', r:32 };
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+
+  function spawnObject(){
+    const isBomb = Math.random() < 0.12;
+    const type = isBomb ? BOMB : TYPES[Math.floor(Math.random()*TYPES.length)];
+    const x = rand(W*0.15, W*0.85);
+    const vy = -rand(H*0.021, H*0.027);
+    const vx = rand(-2.4, 2.4);
+    objects.push({
+      x, y: H + 60, vx, vy, r: type.r,
+      rot: rand(0, Math.PI*2), vrot: rand(-0.05,0.05),
+      type, sliced:false, isBomb, missed:false
+    });
+  }
+
+  function sliceObject(o, dirX, dirY){
+    o.sliced = true;
+    score += (o.type.points || 1);
+    scoreEl.textContent = score;
+    const nx = -dirY, ny = dirX; // normal to swipe direction
+    const speed = Math.hypot(o.vx,o.vy) || 3;
+    [1,-1].forEach(sign=>{
+      particles.push({
+        x:o.x, y:o.y,
+        vx: o.vx + nx*sign*2.6, vy: o.vy + ny*sign*2.6 - 1,
+        r:o.r, rot:o.rot, vrot:o.vrot + sign*0.12,
+        type:o.type, half:sign, life:70, dirX, dirY
+      });
+    });
+    for(let i=0;i<10;i++){
+      particles.push({
+        juice:true, x:o.x, y:o.y,
+        vx: rand(-4,4), vy: rand(-5,-1),
+        r: rand(2,5), color:o.type.rIn, life:34
+      });
+    }
+  }
+
+  function explode(o){
+    for(let i=0;i<26;i++){
+      particles.push({
+        juice:true, x:o.x, y:o.y,
+        vx: rand(-8,8), vy: rand(-9,3),
+        r: rand(2,6), color: i%2? '#ff8a3d':'#3a3a3a', life:44
+      });
+    }
+    endGame(true);
+  }
+
+  function drawObject(o){
+    ctx.save();
+    ctx.translate(o.x,o.y);
+    ctx.rotate(o.rot);
+    if(o.isBomb){
+      ctx.fillStyle = '#222';
+      ctx.beginPath(); ctx.arc(0,0,o.r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#555';
+      ctx.beginPath(); ctx.arc(-o.r*0.3,-o.r*0.3,o.r*0.35,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#ff5d73'; ctx.lineWidth=4;
+      ctx.beginPath(); ctx.moveTo(o.r*0.2,-o.r); ctx.quadraticCurveTo(o.r*0.9,-o.r*1.6,o.r*1.2,-o.r*1.9); ctx.stroke();
+      ctx.fillStyle='#ffb74d';
+      ctx.beginPath(); ctx.arc(o.r*1.2,-o.r*1.9,5,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle = o.type.rOut;
+      ctx.beginPath(); ctx.arc(0,0,o.r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = o.type.rIn;
+      ctx.beginPath(); ctx.arc(0,0,o.r*0.82,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.25)';
+      ctx.beginPath(); ctx.ellipse(-o.r*0.3,-o.r*0.35,o.r*0.28,o.r*0.16,-0.6,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawHalf(p){
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.rot);
+    ctx.beginPath();
+    ctx.arc(0,0,p.r,0,Math.PI, p.half<0);
+    ctx.closePath();
+    ctx.fillStyle = p.type.rOut;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0,0,p.r*0.82,0,Math.PI, p.half<0);
+    ctx.closePath();
+    ctx.fillStyle = p.type.rIn;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-p.r,0); ctx.lineTo(p.r,0); ctx.stroke();
+    ctx.restore();
+  }
+
+  function update(){
+    frame++;
+    spawnTimer++;
+    if(spawnTimer > spawnInterval){
+      spawnTimer = 0;
+      spawnObject();
+      if(spawnInterval > 34) spawnInterval -= 0.6;
+    }
+
+    for(let i=objects.length-1;i>=0;i--){
+      const o = objects[i];
+      o.vy += GRAVITY;
+      o.x += o.vx; o.y += o.vy; o.rot += o.vrot;
+      if(o.y - o.r > H + 80){
+        if(!o.sliced && !o.isBomb && !o.missed){
+          o.missed = true;
+          lives--;
+          livesEl.textContent = '❤️'.repeat(Math.max(lives,0));
+          if(lives<=0){ objects.splice(i,1); endGame(false); continue; }
+        }
+        objects.splice(i,1); continue;
+      }
+      if(o.sliced) objects.splice(i,1);
+    }
+
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.vy += GRAVITY;
+      p.x += p.vx; p.y += p.vy;
+      if(p.rot!==undefined) p.rot += p.vrot||0;
+      p.life--;
+      if(p.life<=0 || p.y > H+100) particles.splice(i,1);
+    }
+  }
+
+  function drawTrail(){
+    if(trail.length < 2) return;
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin='round';
+    for(let i=1;i<trail.length;i++){
+      const t = i/trail.length;
+      ctx.strokeStyle = `rgba(255,255,255,${t*0.9})`;
+      ctx.lineWidth = 10*t + 1;
+      ctx.beginPath();
+      ctx.moveTo(trail[i-1].x, trail[i-1].y);
+      ctx.lineTo(trail[i].x, trail[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    objects.forEach(drawObject);
+    particles.forEach(p=>{
+      if(p.juice){
+        ctx.beginPath();
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(p.life/34,0);
+        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      } else {
+        drawHalf(p);
+      }
+    });
+    drawTrail();
+  }
+
+  function loop(){
+    if(!running) return;
+    update();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function pointerPos(e){
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  }
+
+  function checkCollision(p1,p2){
+    objects.forEach(o=>{
+      if(o.sliced) return;
+      const dx = p2.x-p1.x, dy = p2.y-p1.y;
+      const len = Math.hypot(dx,dy) || 1;
+      const dirX = dx/len, dirY = dy/len;
+      // distance from o to segment
+      const t = Math.max(0, Math.min(1, ((o.x-p1.x)*dx + (o.y-p1.y)*dy)/(len*len)));
+      const cx = p1.x + t*dx, cy = p1.y + t*dy;
+      const dist = Math.hypot(o.x-cx, o.y-cy);
+      if(dist < o.r + 6 && len > 4){
+        if(o.isBomb){ explode(o); }
+        else sliceObject(o, dirX, dirY);
+      }
+    });
+  }
+
+  let dragging = false;
+  function onDown(e){
+    dragging = true;
+    trail = [pointerPos(e)];
+  }
+  function onMove(e){
+    if(!dragging || !running) return;
+    const p = pointerPos(e);
+    trail.push(p);
+    if(trail.length > 14) trail.shift();
+    if(trail.length >= 2){
+      checkCollision(trail[trail.length-2], trail[trail.length-1]);
+    }
+  }
+  function onUp(){
+    dragging = false;
+    trail = [];
+  }
+
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  canvas.addEventListener('touchstart', e=>{ onDown(e); }, {passive:true});
+  canvas.addEventListener('touchmove', e=>{ onMove(e); }, {passive:true});
+  canvas.addEventListener('touchend', onUp);
+
+  function startGame(){
+    objects = []; particles = []; trail = [];
+    score = 0; lives = 3; spawnTimer = 0; spawnInterval = 70; frame = 0;
+    scoreEl.textContent = 0;
+    livesEl.textContent = '❤️❤️❤️';
+    overlay.style.display = 'none';
+    hud.style.display = 'flex';
+    hintText.style.display = 'block';
+    running = true;
+    loop();
+  }
+
+  function endGame(byBomb){
+    running = false;
+    overlay.style.display = 'flex';
+    hud.style.display = 'none';
+    hintText.style.display = 'none';
+    finalScoreEl.style.display = 'block';
+    finalScoreEl.textContent = byBomb
+      ? `💥 انفجرت القنبلة! نقاطك النهائية: ${score}`
+      : `انتهت اللعبة! نقاطك النهائية: ${score}`;
+    startBtn.textContent = 'العب مرة أخرى';
+  }
+
+  startBtn.addEventListener('click', startGame);
+})();
+</script>
+</body>
+</html>

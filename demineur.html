@@ -1,0 +1,261 @@
+ <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة  الفخ🎯</title>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:linear-gradient(145deg,#1a1a2e,#16213e);
+    display:flex; justify-content:center; align-items:center;
+    min-height:100vh; font-family:sans-serif;
+    user-select:none;
+  }
+  .game-wrapper{
+    background:#0f3460;
+    padding:20px; border-radius:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,.7);
+  }
+  #gameCanvas{
+    display:block; width:600px; height:600px;
+    border-radius:16px; cursor:pointer;
+    background:#1a1a2e;
+  }
+  .hud{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:16px; padding:0 8px;
+    color:#eee; font-size:22px; font-weight:bold;
+  }
+  .hud span{ background:rgba(255,255,255,.1); padding:6px 18px; border-radius:30px; }
+  .hud .best{ color:#f4c95d; }
+  #restartBtn{
+    background:#e94560; border:none; color:#fff;
+    padding:8px 28px; border-radius:30px; font-size:20px;
+    cursor:pointer; font-weight:bold;
+    transition:transform .1s;
+  }
+  #restartBtn:active{ transform:scale(.94); }
+  #message{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:64px; font-weight:900; pointer-events:none;
+    text-shadow:0 4px 20px rgba(0,0,0,.8);
+  }
+  .container{ position:relative; }
+</style>
+</head>
+<body>
+<div class="game-wrapper">
+  <div class="container">
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="message"></div>
+  </div>
+  <div class="hud">
+    <span>🏆 <span id="scoreDisplay">0</span></span>
+    <span class="best">⭐ <span id="bestDisplay">0</span></span>
+    <button id="restartBtn">🔄 إعادة</button>
+  </div>
+</div>
+<script>
+// ============================================================
+//  تحويل كامل من Pygame إلى JavaScript (HTML Canvas)
+// ============================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const bestDisplay = document.getElementById('bestDisplay');
+const messageEl = document.getElementById('message');
+
+const ROWS = 6, COLS = 6;
+const CELL_SIZE = 100;
+const TOTAL_SAFE = ROWS * COLS - 6; // 30 صورة آمنة
+
+// ---------- الأصوات (Web Audio) ----------
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, dur, type='sine', vol=0.2) {
+  try {
+    ensureAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(vol, audioCtx.currentTime+0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime+dur);
+  } catch(e){}
+}
+function sndClick(){ playTone(660, 0.08, 'sine', 0.15); }
+function sndTrap(){ playTone(160, 0.4, 'sawtooth', 0.3); }
+function sndWin(){ playTone(523, 0.1); setTimeout(()=>playTone(659,0.1),120); setTimeout(()=>playTone(784,0.2),240); }
+function sndStart(){ playTone(440,0.06); setTimeout(()=>playTone(554,0.06),80); }
+
+// ---------- أفضل نتيجة ----------
+function loadBest(){ return parseInt(localStorage.getItem('trapGameBest')||'0',10); }
+function saveBest(v){ localStorage.setItem('trapGameBest', String(v)); }
+let bestScore = loadBest();
+bestDisplay.textContent = bestScore;
+
+// ---------- حالة اللعبة ----------
+let grid = [];
+let revealed = [];
+let score = 0;
+let gameOver = false;
+let win = false;
+let showAll = true;
+let showStartTime = 0;
+const SHOW_DURATION = 2; // 10 ثواني
+
+// ---------- توليد الفخاخ ----------
+function generateGrid() {
+  grid = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+  let traps =2, placed = 0;
+  while (placed < traps) {
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+    if (grid[r][c] === 0) { grid[r][c] = 1; placed++; }
+  }
+  revealed = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+}
+
+// ---------- إعادة تعيين ----------
+function resetGame() {
+  generateGrid();
+  score = 0;
+  gameOver = false;
+  win = false;
+  showAll = true;
+  showStartTime = performance.now() / 1000;
+  messageEl.textContent = '';
+  scoreDisplay.textContent = '0';
+  sndStart();
+  draw();
+}
+
+// ---------- رسم الصور (رموز بدلاً من الصور) ----------
+function drawCell(r, c, type, hidden=false) {
+  const x = c * CELL_SIZE, y = r * CELL_SIZE;
+  // خلفية الخلية
+  ctx.fillStyle = hidden ? '#2d4059' : (type===1 ? '#e94560' : '#4ecca3');
+  ctx.shadowColor = 'rgba(0,0,0,.3)';
+  ctx.shadowBlur = 8;
+  ctx.fillRect(x+2, y+2, CELL_SIZE-4, CELL_SIZE-4);
+  ctx.shadowBlur = 0;
+  // إطار
+  ctx.strokeStyle = 'rgba(255,255,255,.15)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x+2, y+2, CELL_SIZE-4, CELL_SIZE-4);
+  // الرمز
+  ctx.font = '48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  if (hidden) {
+    ctx.fillText('❓', x+CELL_SIZE/2, y+CELL_SIZE/2);
+  } else if (type === 1) {
+    ctx.fillText('💣', x+CELL_SIZE/2, y+CELL_SIZE/2+4);
+  } else {
+    ctx.fillText('✅', x+CELL_SIZE/2, y+CELL_SIZE/2+4);
+  }
+}
+
+// ---------- الرسم الرئيسي ----------
+function draw() {
+  ctx.clearRect(0, 0, 600, 600);
+  const now = performance.now() / 1000;
+  if (showAll && (now - showStartTime) > SHOW_DURATION) {
+    showAll = false;
+  }
+
+  let revealedSafe = 0;
+  for (let r=0; r<ROWS; r++) {
+    for (let c=0; c<COLS; c++) {
+      const isTrap = grid[r][c] === 1;
+      const isRevealed = revealed[r][c];
+      const isShowing = showAll;
+      if (isShowing || isRevealed) {
+        drawCell(r, c, isTrap ? 1 : 0, false);
+        if (!isTrap && isRevealed) revealedSafe++;
+      } else {
+        drawCell(r, c, 0, true);
+      }
+    }
+  }
+
+  // فوز؟
+  if (revealedSafe === TOTAL_SAFE && !gameOver && !showAll) {
+    win = true;
+    gameOver = true;
+    score += 50;
+    scoreDisplay.textContent = score;
+    messageEl.textContent = '🎉 فوز!';
+    messageEl.style.color = '#4ecca3';
+    sndWin();
+    updateBest();
+  }
+}
+
+// ---------- تحديث أفضل نتيجة ----------
+function updateBest() {
+  if (score > bestScore) {
+    bestScore = score;
+    saveBest(bestScore);
+    bestDisplay.textContent = bestScore;
+  }
+}
+
+// ---------- معالجة النقر ----------
+function handleClick(e) {
+  if (gameOver) return;
+  if (showAll) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+  const col = Math.floor(x / CELL_SIZE);
+  const row = Math.floor(y / CELL_SIZE);
+  if (row<0 || row>=ROWS || col<0 || col>=COLS) return;
+  if (revealed[row][col]) return;
+
+  revealed[row][col] = true;
+  if (grid[row][col] === 1) {
+    // وقع في فخ
+    gameOver = true;
+    messageEl.textContent = '💀 خسرت!';
+    messageEl.style.color = '#e94560';
+    sndTrap();
+    updateBest();
+  } else {
+    score += 10;
+    scoreDisplay.textContent = score;
+    sndClick();
+  }
+  draw();
+}
+
+// ---------- أحداث ----------
+canvas.addEventListener('click', handleClick);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ---------- بدء اللعبة ----------
+resetGame();
+
+// حلقة رسم مستمرة (للتأكد من تحديث المؤقت)
+function loop() {
+  if (showAll) draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// حفظ الصوت عند أول تفاعل
+document.addEventListener('click', ()=>ensureAudio(), {once:true});
+</script>
+</body>
+</html>

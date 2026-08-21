@@ -1,0 +1,648 @@
+ <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>لعبة النقر على المتماثلين</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        .game-wrapper {
+            background: #16213e;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            border: 2px solid #0f3460;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 16px;
+            background: #f5f0eb;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            width: 100%;
+            height: auto;
+            max-width: 950px;
+            aspect-ratio: 950 / 850;
+        }
+
+        /* رسالة توضيحية صغيرة تحت اللعبة */
+        .hint {
+            color: #a8b2d1;
+            text-align: center;
+            margin-top: 16px;
+            font-size: 16px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .hint span {
+            color: #64ffda;
+            font-weight: 600;
+        }
+
+        @media (max-width: 700px) {
+            .game-wrapper {
+                padding: 10px;
+            }
+            .hint {
+                font-size: 13px;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="950" height="850"></canvas>
+        <div class="hint">🎯 اضغط على <span>متماثلين</span> لتجميعهما — الوقت محدود!</div>
+    </div>
+
+    <script>
+        // ------------------------------------------------------------
+        //  إعدادات اللعبة
+        // ------------------------------------------------------------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const WIDTH = 950;
+        const HEIGHT = 850;
+
+        // مجموعة الإيموجي (8 رموز مختلفة، كل منها سيكون زوجاً)
+        const EMOJIS = ['🍎', '🍊', '🍋', '🍇', '🍉', '🍓', '🍑', '🫐'];
+        const PAIRS_PER_EMOJI = 4; // كل إيموجي يظهر 4 مرات → 2 زوجين
+        const ITEM_SIZE = 80;
+        const MARGIN = 10;
+        const TIME_LIMIT = 60;
+        const MATCH_POINTS = 10;
+        const WRONG_PENALTY = 5;
+
+        // ------------------------------------------------------------
+        //  متغيرات اللعبة
+        // ------------------------------------------------------------
+        let items = [];
+        let selected = [];
+        let score = 0;
+        let startTime = 0;
+        let gameOver = false;
+        let win = false;
+        let gameStarted = false;
+        let matchDelay = false; // منع النقر أثناء تأخير المطابقة
+        let timerId = null;
+
+        // ------------------------------------------------------------
+        //  دوال مساعدة
+        // ------------------------------------------------------------
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // ------------------------------------------------------------
+        //  إنشاء العناصر وإعداد الشبكة
+        // ------------------------------------------------------------
+        function buildItems() {
+            const newItems = [];
+
+            // تكوين الأزواج: كل إيموجي يتكرر PAIRS_PER_EMOJI مرات
+            let pool = [];
+            for (const emoji of EMOJIS) {
+                for (let i = 0; i < PAIRS_PER_EMOJI; i++) {
+                    pool.push(emoji);
+                }
+            }
+            shuffle(pool);
+
+            const total = pool.length;
+            const cols = Math.ceil(Math.sqrt(total));
+            const rows = Math.ceil(total / cols);
+
+            const startX = (WIDTH - (cols * ITEM_SIZE + (cols - 1) * MARGIN)) / 2;
+            const startY = (HEIGHT - (rows * ITEM_SIZE + (rows - 1) * MARGIN)) / 2;
+
+            let idx = 0;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (idx >= total) break;
+                    const x = startX + c * (ITEM_SIZE + MARGIN);
+                    const y = startY + r * (ITEM_SIZE + MARGIN);
+                    const emoji = pool[idx];
+                    newItems.push({
+                        emoji: emoji,
+                        name: emoji, // المطابقة تعتمد على الإيموجي نفسه
+                        x: x,
+                        y: -100, // يبدأ من الأعلى
+                        targetX: x,
+                        targetY: y,
+                        speed: 2 + Math.random() * 4,
+                        stopped: false,
+                        visible: true,
+                        id: idx,
+                    });
+                    idx++;
+                }
+            }
+            return newItems;
+        }
+
+        // ------------------------------------------------------------
+        //  إعادة ضبط اللعبة
+        // ------------------------------------------------------------
+        function resetGame() {
+            // إلغاء المؤقت القديم
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+
+            items = buildItems();
+            selected = [];
+            score = 0;
+            startTime = Date.now();
+            gameOver = false;
+            win = false;
+            gameStarted = false;
+            matchDelay = false;
+
+            // بدء المؤقت
+            timerId = setInterval(() => {
+                if (!gameOver && gameStarted) {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    if (elapsed >= TIME_LIMIT) {
+                        gameOver = true;
+                        win = false;
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                }
+            }, 500);
+        }
+
+        // ------------------------------------------------------------
+        //  رسم العناصر
+        // ------------------------------------------------------------
+        function drawItem(item) {
+            if (!item.visible) return;
+
+            const x = item.x;
+            const y = item.y;
+            const size = ITEM_SIZE;
+
+            // ظل ناعم
+            ctx.shadowColor = 'rgba(0,0,0,0.10)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 4;
+
+            // خلفية البطاقة
+            const radius = 12;
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + size - radius, y);
+            ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+            ctx.lineTo(x + size, y + size - radius);
+            ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
+            ctx.lineTo(x + radius, y + size);
+            ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+
+            // تدرج لوني جميل
+            const grad = ctx.createLinearGradient(x, y, x + size, y + size);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(1, '#f0ece6');
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            // حد خارجي
+            ctx.strokeStyle = '#d5cdc0';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // الإيموجي
+            ctx.font = '44px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillText(item.emoji, x + size / 2, y + size / 2 + 2);
+
+            // إذا كان العنصر مختاراً، نضيف إطاراً مميزاً
+            if (selected.includes(item)) {
+                ctx.strokeStyle = '#64ffda';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = 'rgba(100, 255, 218, 0.4)';
+                ctx.shadowBlur = 16;
+                ctx.strokeRect(x - 2, y - 2, size + 4, size + 4);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  رسم الواجهة (النتيجة والوقت)
+        // ------------------------------------------------------------
+        function drawUI() {
+            // خلفية شفافة للوحة المعلومات
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.shadowColor = 'rgba(0,0,0,0.06)';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.roundRect(12, 10, 210, 44, 16);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.font = 'bold 20px "Segoe UI", Tahoma, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillText(`⭐ النقاط: ${score}`, 212, 33);
+
+            // الوقت
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const remaining = Math.max(0, TIME_LIMIT - elapsed);
+            const isUrgent = remaining <= 10;
+
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.shadowColor = 'rgba(0,0,0,0.06)';
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.roundRect(WIDTH - 175, 10, 160, 44, 16);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = isUrgent ? '#e74c3c' : '#2d3436';
+            ctx.font = `bold ${isUrgent ? 22 : 20}px "Segoe UI", Tahoma, sans-serif`;
+            ctx.fillText(`⏱ ${remaining}ث`, WIDTH - 165, 33);
+
+            // إذا انتهت اللعبة، نرسم شاشة النهاية فوق كل شيء
+            if (gameOver) {
+                drawGameOver();
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  شاشة النهاية
+        // ------------------------------------------------------------
+        function drawGameOver() {
+            // طبقة شفافة داكنة
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // مربع الرسالة
+            const boxW = 440;
+            const boxH = 240;
+            const bx = (WIDTH - boxW) / 2;
+            const by = (HEIGHT - boxH) / 2 - 20;
+
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = 50;
+            ctx.fillStyle = '#f8f6f2';
+            ctx.beginPath();
+            ctx.roundRect(bx, by, boxW, boxH, 24);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // العنوان
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (win) {
+                ctx.fillStyle = '#00b894';
+                ctx.font = 'bold 56px "Segoe UI", Tahoma, sans-serif';
+                ctx.fillText('🏆 فُزْتَ! 🏆', WIDTH / 2, by + 80);
+                ctx.fillStyle = '#2d3436';
+                ctx.font = '24px "Segoe UI", Tahoma, sans-serif';
+                ctx.fillText(`النقاط النهائية: ${score}`, WIDTH / 2, by + 140);
+            } else {
+                ctx.fillStyle = '#e17055';
+                ctx.font = 'bold 52px "Segoe UI", Tahoma, sans-serif';
+                ctx.fillText('😞 انتهى الوقت', WIDTH / 2, by + 80);
+                ctx.fillStyle = '#2d3436';
+                ctx.font = '24px "Segoe UI", Tahoma, sans-serif';
+                ctx.fillText(`النقاط: ${score}`, WIDTH / 2, by + 140);
+            }
+
+            // زر إعادة اللعب
+            const btnX = (WIDTH - 200) / 2;
+            const btnY = by + 170;
+            const btnW = 200;
+            const btnH = 52;
+
+            ctx.shadowColor = 'rgba(0,0,0,0.15)';
+            ctx.shadowBlur = 20;
+
+            const grad = ctx.createLinearGradient(btnX, btnY, btnX + btnW, btnY + btnH);
+            grad.addColorStop(0, '#6c5ce7');
+            grad.addColorStop(1, '#a29bfe');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.roundRect(btnX, btnY, btnW, btnH, 14);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px "Segoe UI", Tahoma, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🔄 إعادة اللعب', WIDTH / 2, btnY + btnH / 2);
+
+            // حفظ معلومات الزر للكشف عن النقر
+            window._restartBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+        }
+
+        // ------------------------------------------------------------
+        //  تحديث حركة السقوط
+        // ------------------------------------------------------------
+        function updateItems() {
+            if (gameOver || !gameStarted) {
+                // حتى لو لم تبدأ اللعبة، تستمر العناصر في السقوط
+                let allStopped = true;
+                for (const item of items) {
+                    if (!item.stopped && item.visible) {
+                        item.y += item.speed;
+                        if (item.y >= item.targetY) {
+                            item.y = item.targetY;
+                            item.stopped = true;
+                        }
+                        allStopped = false;
+                    }
+                }
+                // إذا توقفت كل العناصر، نبدأ اللعبة
+                if (allStopped && !gameOver) {
+                    gameStarted = true;
+                }
+                return;
+            }
+
+            // أثناء اللعب، العناصر ثابتة في أماكنها
+            // (لا حركة)
+        }
+
+        // ------------------------------------------------------------
+        //  منطق المطابقة
+        // ------------------------------------------------------------
+        function checkMatch() {
+            if (selected.length !== 2) return;
+            if (matchDelay) return;
+
+            const a = selected[0];
+            const b = selected[1];
+
+            matchDelay = true;
+
+            if (a.name === b.name) {
+                // تطابق ✅
+                score += MATCH_POINTS;
+                a.visible = false;
+                b.visible = false;
+                // تشغيل صوت (محاكاة بالوميض)
+                flashFeedback(a.x, a.y, '#00b894', '✓');
+                flashFeedback(b.x, b.y, '#00b894', '✓');
+            } else {
+                // خطأ ❌
+                score = Math.max(0, score - WRONG_PENALTY);
+                flashFeedback(a.x, a.y, '#e17055', '✗');
+                flashFeedback(b.x, b.y, '#e17055', '✗');
+            }
+
+            selected = [];
+
+            // إلغاء تأخير المطابقة بعد 350 مللي
+            setTimeout(() => {
+                matchDelay = false;
+                // التحقق من الفوز بعد المطابقة
+                const remaining = items.filter(it => it.visible);
+                if (remaining.length === 0 && !gameOver) {
+                    gameOver = true;
+                    win = true;
+                    if (timerId) {
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                }
+            }, 350);
+        }
+
+        // ------------------------------------------------------------
+        //  تأثير بصري عند المطابقة / الخطأ
+        // ------------------------------------------------------------
+        let feedbacks = [];
+
+        function flashFeedback(x, y, color, symbol) {
+            feedbacks.push({
+                x: x + ITEM_SIZE / 2,
+                y: y + ITEM_SIZE / 2,
+                color: color,
+                symbol: symbol,
+                life: 40, // عدد الإطارات
+                size: 36,
+            });
+        }
+
+        function drawFeedbacks() {
+            for (let i = feedbacks.length - 1; i >= 0; i--) {
+                const f = feedbacks[i];
+                f.life--;
+                const alpha = Math.min(1, f.life / 20);
+                ctx.globalAlpha = alpha;
+                ctx.font = `bold ${f.size}px "Segoe UI", Tahoma, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = f.color;
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 20;
+                ctx.fillText(f.symbol, f.x, f.y - (40 - f.life) * 0.3);
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+                if (f.life <= 0) {
+                    feedbacks.splice(i, 1);
+                }
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  معالجة النقر
+        // ------------------------------------------------------------
+        function handleClick(px, py) {
+            if (gameOver) {
+                // التحقق من زر إعادة اللعب
+                const btn = window._restartBtn;
+                if (btn && px >= btn.x && px <= btn.x + btn.w &&
+                    py >= btn.y && py <= btn.y + btn.h) {
+                    resetGame();
+                }
+                return;
+            }
+
+            if (!gameStarted || matchDelay) return;
+            if (selected.length >= 2) return;
+
+            // البحث عن العنصر المضغوط
+            // نبحث بالترتيب العكسي ليكون العنصر المرسوم فوق غيره هو الأول
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                if (!item.visible) continue;
+                if (item.stopped === false) continue;
+                const x = item.x;
+                const y = item.y;
+                if (px >= x && px <= x + ITEM_SIZE &&
+                    py >= y && py <= y + ITEM_SIZE) {
+                    // لا نختار العنصر إذا كان محدداً بالفعل
+                    if (selected.includes(item)) return;
+                    selected.push(item);
+                    if (selected.length === 2) {
+                        checkMatch();
+                    }
+                    return;
+                }
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  الحلقة الرئيسية (الرسم والتحديث)
+        // ------------------------------------------------------------
+        function gameLoop() {
+            // مسح الشاشة
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            // خلفية ناعمة مع تدرج
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+            bgGrad.addColorStop(0, '#e8e0d8');
+            bgGrad.addColorStop(1, '#f5f0eb');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // شبكة خفيفة جداً في الخلفية
+            ctx.strokeStyle = 'rgba(200, 190, 180, 0.2)';
+            ctx.lineWidth = 1;
+            const step = 40;
+            for (let x = 0; x <= WIDTH; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, HEIGHT);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= HEIGHT; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(WIDTH, y);
+                ctx.stroke();
+            }
+
+            // تحديث العناصر
+            updateItems();
+
+            // رسم العناصر
+            for (const item of items) {
+                drawItem(item);
+            }
+
+            // رسم تأثيرات المطابقة
+            drawFeedbacks();
+
+            // رسم الواجهة
+            drawUI();
+
+            // إذا كانت اللعبة انتهت ولم يظهر شيء آخر
+            if (gameOver) {
+                // drawUI يقوم برسم شاشة النهاية
+            }
+
+            // استمرار الحلقة
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ------------------------------------------------------------
+        //  إضافة roundRect للـ Canvas
+        // ------------------------------------------------------------
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (r > w / 2) r = w / 2;
+                if (r > h / 2) r = h / 2;
+                this.moveTo(x + r, y);
+                this.lineTo(x + w - r, y);
+                this.quadraticCurveTo(x + w, y, x + w, y + r);
+                this.lineTo(x + w, y + h - r);
+                this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                this.lineTo(x + r, y + h);
+                this.quadraticCurveTo(x, y + h, x, y + h - r);
+                this.lineTo(x, y + r);
+                this.quadraticCurveTo(x, y, x + r, y);
+                return this;
+            };
+        }
+
+        // ------------------------------------------------------------
+        //  أحداث الفأرة
+        // ------------------------------------------------------------
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const px = (e.clientX - rect.left) * scaleX;
+            const py = (e.clientY - rect.top) * scaleY;
+            handleClick(px, py);
+        });
+
+        // دعم اللمس للجوال
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const px = (touch.clientX - rect.left) * scaleX;
+            const py = (touch.clientY - rect.top) * scaleY;
+            handleClick(px, py);
+        }, { passive: false });
+
+        // ------------------------------------------------------------
+        //  بدء اللعبة
+        // ------------------------------------------------------------
+        resetGame();
+        gameLoop();
+
+        // ------------------------------------------------------------
+        //  إعادة الضبط عبر لوحة المفاتيح (مفتاح R)
+        // ------------------------------------------------------------
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                resetGame();
+            }
+        });
+
+        // ------------------------------------------------------------
+        //  منع السحب على canvas
+        // ------------------------------------------------------------
+        canvas.addEventListener('dragstart', (e) => e.preventDefault());
+
+        console.log('🎮 لعبة النقر على المتماثلين');
+        console.log(`📦 ${EMOJIS.length} إيموجي × ${PAIRS_PER_EMOJI} = ${EMOJIS.length * PAIRS_PER_EMOJI} عنصر`);
+        console.log('🔄 اضغط R لإعادة اللعب');
+    </script>
+
+</body>
+</html>

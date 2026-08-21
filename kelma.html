@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة تكوين — كوّن الكلمة من الحروف</title>
+<style>
+  :root{
+    --navy-dark:#050a1a;
+    --navy:#0b1330;
+    --navy-light:#131c45;
+    --gold:#f4c95d;
+    --gold-light:#ffe8a3;
+    --gold-dim:#8a6d2f;
+    --green:#3ddc84;
+    --red:#ff5d5d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    min-height:100vh;
+    background:radial-gradient(ellipse at top, var(--navy-light), var(--navy-dark) 70%);
+    font-family:"Tahoma","Segoe UI",sans-serif;
+    color:#eaf0ff;
+    overflow-x:hidden;
+    position:relative;
+  }
+  #stars, #stars2, #stars3{
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:transparent; z-index:0; pointer-events:none;
+  }
+  .star{
+    position:absolute; background:#fff; border-radius:50%;
+    animation:twinkle linear infinite;
+  }
+  @keyframes twinkle{
+    0%,100%{opacity:.15;}
+    50%{opacity:1;}
+  }
+  .wrap{
+    position:relative; z-index:2;
+    max-width:720px; margin:0 auto;
+    padding:22px 16px 60px;
+  }
+  header{ text-align:center; margin-bottom:18px; }
+  h1{
+    color:var(--gold);
+    font-size:2rem;
+    text-shadow:0 0 18px rgba(244,201,93,.5);
+    letter-spacing:1px;
+  }
+  .subtitle{ color:#9fb0e0; margin-top:6px; font-size:.95rem; }
+
+  .stats{
+    display:flex; justify-content:space-between; gap:10px;
+    margin:18px 0;
+    flex-wrap:wrap;
+  }
+  .stat-box{
+    flex:1; min-width:90px;
+    background:linear-gradient(160deg, var(--navy-light), var(--navy));
+    border:1px solid rgba(244,201,93,.25);
+    border-radius:12px;
+    padding:10px 8px;
+    text-align:center;
+  }
+  .stat-box .label{ font-size:.75rem; color:#9fb0e0; }
+  .stat-box .value{ font-size:1.3rem; color:var(--gold); font-weight:bold; margin-top:2px; }
+
+  .category{
+    text-align:center;
+    color:var(--gold-light);
+    background:rgba(244,201,93,.08);
+    border:1px solid rgba(244,201,93,.3);
+    display:inline-block;
+    padding:6px 18px;
+    border-radius:999px;
+    font-size:.9rem;
+    margin-bottom:16px;
+  }
+  .category-wrap{ text-align:center; }
+
+  .answer-area{
+    display:flex; justify-content:center; gap:8px;
+    flex-wrap:wrap;
+    min-height:64px;
+    margin:14px 0 22px;
+    padding:10px;
+    background:rgba(0,0,0,.2);
+    border-radius:14px;
+    border:1px dashed rgba(244,201,93,.35);
+  }
+  .slot{
+    width:48px; height:48px;
+    border-bottom:3px solid var(--gold-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.5rem; font-weight:bold;
+    color:var(--gold-light);
+  }
+  .slot.filled{
+    background:linear-gradient(160deg, var(--navy-light), var(--navy));
+    border-radius:8px;
+    border-bottom:3px solid var(--gold);
+    cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,.4);
+    transition:transform .15s;
+  }
+  .slot.filled:active{ transform:scale(.92); }
+
+  .letters-area{
+    display:flex; justify-content:center; gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+  .tile{
+    width:52px; height:52px;
+    background:linear-gradient(160deg, var(--gold-light), var(--gold));
+    color:var(--navy-dark);
+    border:none; border-radius:10px;
+    font-size:1.5rem; font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 0 var(--gold-dim), 0 8px 14px rgba(0,0,0,.4);
+    transition:transform .12s, box-shadow .12s;
+  }
+  .tile:hover{ transform:translateY(-2px); }
+  .tile:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--gold-dim); }
+  .tile.used{ visibility:hidden; }
+
+  .controls{
+    display:flex; justify-content:center; gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  button.action{
+    padding:10px 20px;
+    border:none; border-radius:10px;
+    font-size:.95rem; font-weight:bold;
+    cursor:pointer;
+    color:var(--navy-dark);
+    background:linear-gradient(160deg, var(--gold-light), var(--gold));
+    box-shadow:0 4px 10px rgba(0,0,0,.4);
+    transition:transform .12s;
+  }
+  button.action:hover{ transform:translateY(-2px); }
+  button.action.secondary{
+    background:transparent;
+    color:var(--gold-light);
+    border:1px solid rgba(244,201,93,.5);
+    box-shadow:none;
+  }
+
+  .message{
+    text-align:center;
+    min-height:28px;
+    font-size:1.05rem;
+    font-weight:bold;
+    margin-bottom:6px;
+  }
+  .message.ok{ color:var(--green); }
+  .message.err{ color:var(--red); }
+
+  .hint-text{
+    text-align:center;
+    color:#9fb0e0;
+    font-size:.85rem;
+    min-height:18px;
+    margin-bottom:10px;
+  }
+
+  footer{
+    text-align:center; margin-top:30px;
+    color:#5c6da0; font-size:.8rem;
+  }
+
+  @media (max-width:420px){
+    .tile, .slot{ width:42px; height:42px; font-size:1.2rem; }
+    h1{ font-size:1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div class="wrap">
+  <header>
+    <h1>🔤 لعبة تكوين</h1>
+    <p class="subtitle">كوّن الكلمة الصحيحة من الحروف المبعثرة</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="label">النقاط</div>
+      <div class="value" id="scoreVal">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">المحاولات</div>
+      <div class="value" id="triesVal">3</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">الكلمة</div>
+      <div class="value" id="roundVal">1</div>
+    </div>
+  </div>
+
+  <div class="category-wrap">
+    <span class="category" id="categoryLabel">التصنيف</span>
+  </div>
+
+  <div class="answer-area" id="answerArea"></div>
+  <div class="letters-area" id="lettersArea"></div>
+
+  <div class="message" id="message"></div>
+  <div class="hint-text" id="hintText"></div>
+
+  <div class="controls">
+    <button class="action" id="checkBtn">تحقق ✔</button>
+    <button class="action secondary" id="undoBtn">تراجع ⤺</button>
+    <button class="action secondary" id="hintBtn">تلميح 💡</button>
+    <button class="action secondary" id="skipBtn">تخطي ⏭</button>
+  </div>
+
+  <footer>لعبة تكوين — تصميم نجيب</footer>
+</div>
+
+<script>
+/* ===== بيانات الكلمات ===== */
+const wordBank = [
+  {word:"قمر", cat:"الفضاء"},
+  {word:"شمس", cat:"الفضاء"},
+  {word:"نجمة", cat:"الفضاء"},
+  {word:"تفاح", cat:"فواكه"},
+  {word:"موز", cat:"فواكه"},
+  {word:"عنب", cat:"فواكه"},
+  {word:"برتقال", cat:"فواكه"},
+  {word:"أسد", cat:"حيوانات"},
+  {word:"نمر", cat:"حيوانات"},
+  {word:"فيل", cat:"حيوانات"},
+  {word:"حصان", cat:"حيوانات"},
+  {word:"قطة", cat:"حيوانات"},
+  {word:"طبيب", cat:"مهن"},
+  {word:"معلم", cat:"مهن"},
+  {word:"مهندس", cat:"مهن"},
+  {word:"طيار", cat:"مهن"},
+  {word:"أحمر", cat:"ألوان"},
+  {word:"أزرق", cat:"ألوان"},
+  {word:"أخضر", cat:"ألوان"},
+  {word:"أصفر", cat:"ألوان"},
+  {word:"مصر", cat:"بلدان"},
+  {word:"سوريا", cat:"بلدان"},
+  {word:"الجزائر", cat:"بلدان"},
+  {word:"المغرب", cat:"بلدان"},
+  {word:"كتاب", cat:"أدوات"},
+  {word:"قلم", cat:"أدوات"},
+  {word:"حاسوب", cat:"أدوات"},
+  {word:"مقص", cat:"أدوات"},
+  {word:"مدرسة", cat:"أماكن"},
+  {word:"مسجد", cat:"أماكن"},
+  {word:"حديقة", cat:"أماكن"},
+  {word:"مطبخ", cat:"أماكن"},
+  {word:"عنابة", cat:"بلدان"},
+  {word:"نجيب" ,cat:"اسماء"},
+  {word:"ادم",cat:"اسماء"},
+  {word:"زينب",cat:"اسماء"},
+  {word:"شهد",cat:"اسماء"},
+  {word:"اسامة",cat:"اسماء"},
+  {word:"سارة",cat:"اسماء"},
+  {word:"ايمن",cat:"اسماء"},
+  {word:"محمود",cat:"اسماء"},
+  {word:"بشير",cat:"اسماء"},
+  {word:"جمال",cat:"اسماء"},
+  {word:"نبيل",cat:"اسماء"},
+
+];
+
+let deck = [];
+let currentIndex = 0;
+let currentWord = "";
+let scrambled = [];
+let answer = [];
+let usedFlags = [];
+let score = 0;
+let tries = 3;
+let hintUsed = false;
+
+const answerArea = document.getElementById('answerArea');
+const lettersArea = document.getElementById('lettersArea');
+const messageEl = document.getElementById('message');
+const hintText = document.getElementById('hintText');
+const scoreVal = document.getElementById('scoreVal');
+const triesVal = document.getElementById('triesVal');
+const roundVal = document.getElementById('roundVal');
+const categoryLabel = document.getElementById('categoryLabel');
+
+function shuffleArray(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function buildDeck(){
+  deck = shuffleArray(wordBank);
+}
+
+function startRound(){
+  if(currentIndex >= deck.length){
+    buildDeck();
+    currentIndex = 0;
+  }
+  const entry = deck[currentIndex];
+  currentWord = entry.word;
+  categoryLabel.textContent = "التصنيف: " + entry.cat;
+  roundVal.textContent = (currentIndex+1) + " / " + deck.length;
+
+  let letters = currentWord.split('');
+  // شوّش الحروف حتى لا تكون مطابقة للترتيب الأصلي (إن أمكن)
+  let attempt = 0;
+  do{
+    scrambled = shuffleArray(letters);
+    attempt++;
+  } while(scrambled.join('') === currentWord && attempt < 10);
+
+  usedFlags = new Array(scrambled.length).fill(false);
+  answer = [];
+  hintUsed = false;
+  messageEl.textContent = "";
+  messageEl.className = "message";
+  hintText.textContent = "";
+
+  renderAnswer();
+  renderLetters();
+}
+
+function renderAnswer(){
+  answerArea.innerHTML = "";
+  for(let i=0;i<currentWord.length;i++){
+    const slot = document.createElement('div');
+    if(answer[i] !== undefined){
+      slot.className = "slot filled";
+      slot.textContent = answer[i].ch;
+      slot.onclick = () => removeFromAnswer(i);
+    } else {
+      slot.className = "slot";
+    }
+    answerArea.appendChild(slot);
+  }
+}
+
+function renderLetters(){
+  lettersArea.innerHTML = "";
+  scrambled.forEach((ch, idx) => {
+    const btn = document.createElement('button');
+    btn.className = "tile" + (usedFlags[idx] ? " used" : "");
+    btn.textContent = ch;
+    btn.onclick = () => addToAnswer(ch, idx);
+    lettersArea.appendChild(btn);
+  });
+}
+
+function addToAnswer(ch, idx){
+  if(usedFlags[idx]) return;
+  if(answer.length >= currentWord.length) return;
+  usedFlags[idx] = true;
+  answer.push({ch, idx});
+  renderAnswer();
+  renderLetters();
+}
+
+function removeFromAnswer(slotIndex){
+  const item = answer[slotIndex];
+  if(!item) return;
+  usedFlags[item.idx] = false;
+  answer.splice(slotIndex,1);
+  renderAnswer();
+  renderLetters();
+}
+
+function checkAnswer(){
+  if(answer.length !== currentWord.length){
+    showMessage("أكمل كل الحروف أولاً!", "err");
+    return;
+  }
+  const built = answer.map(a=>a.ch).join('');
+  if(built === currentWord){
+    const points = hintUsed ? 5 : 10;
+    score += points;
+    scoreVal.textContent = score;
+    showMessage("أحسنت! +" + points + " نقطة 🎉", "ok");
+    currentIndex++;
+    setTimeout(startRound, 1100);
+  } else {
+    tries--;
+    triesVal.textContent = tries;
+    if(tries <= 0){
+      showMessage("انتهت المحاولات، الكلمة كانت: " + currentWord, "err");
+      tries = 3;
+      triesVal.textContent = tries;
+      currentIndex++;
+      setTimeout(startRound, 1600);
+    } else {
+      showMessage("محاولة خاطئة، حاول مجدداً", "err");
+    }
+  }
+}
+
+function undoLast(){
+  if(answer.length === 0) return;
+  removeFromAnswer(answer.length-1);
+}
+
+function showHint(){
+  hintUsed = true;
+  hintText.textContent = "أول حرف: " + currentWord[0] + " — عدد الحروف: " + currentWord.length;
+}
+
+function skipWord(){
+  showMessage("تم التخطي، الكلمة كانت: " + currentWord, "err");
+  currentIndex++;
+  setTimeout(startRound, 900);
+}
+
+function showMessage(text, type){
+  messageEl.textContent = text;
+  messageEl.className = "message " + type;
+}
+
+document.getElementById('checkBtn').onclick = checkAnswer;
+document.getElementById('undoBtn').onclick = undoLast;
+document.getElementById('hintBtn').onclick = showHint;
+document.getElementById('skipBtn').onclick = skipWord;
+
+/* ===== خلفية النجوم ===== */
+function createStars(){
+  const container = document.getElementById('stars');
+  const count = 90;
+  for(let i=0;i<count;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random()*2 + 1;
+    s.style.width = size+'px';
+    s.style.height = size+'px';
+    s.style.top = Math.random()*100 + '%';
+    s.style.left = Math.random()*100 + '%';
+    s.style.animationDuration = (Math.random()*3 + 2) + 's';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    container.appendChild(s);
+  }
+}
+
+/* ===== تشغيل ===== */
+createStars();
+buildDeck();
+startRound();
+</script>
+
+</body>
+</html>
