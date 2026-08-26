@@ -1,0 +1,510 @@
+  <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عيد ميلاد سعيد 🎉</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    background: #0d0d1a;
+    color: #fff;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Lights layer */
+  #lights {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    transition: background 0.15s ease;
+    z-index: 0;
+  }
+
+  .bulb {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    box-shadow: 0 0 12px 4px currentColor;
+    opacity: 0.25;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+  }
+
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 10px;
+    height: 14px;
+    opacity: 0.9;
+    z-index: 5;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(540deg); opacity: 0.4; }
+  }
+
+  .photo-bubble {
+    position: fixed;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 4;
+    pointer-events: none;
+    box-shadow: 0 0 0 3px rgba(251,191,36,0.85), 0 10px 25px rgba(0,0,0,0.5);
+    opacity: 0;
+    animation: floatUp ease-in forwards, spinSlow linear infinite;
+  }
+  .photo-bubble img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+    10%  { opacity: 1; transform: translateY(-5vh) scale(1); }
+    85%  { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-100vh) scale(0.9); }
+  }
+  @keyframes spinSlow {
+    from { filter: hue-rotate(0deg); }
+    to   { filter: hue-rotate(15deg); }
+  }
+
+  .card {
+    position: relative;
+    z-index: 10;
+    background: rgba(20,20,35,0.85);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 22px;
+    padding: 36px 30px;
+    width: min(420px, 90vw);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #fbbf24, #f472b6, #60a5fa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .sub { color: #a5b4cb; font-size: 0.85rem; margin-bottom: 24px; }
+
+  input[type=date] {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 1rem;
+    border-radius: 12px;
+    border: 1px solid #3a3a55;
+    background: #171727;
+    color: #fff;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .photo-upload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  #photoInputBtn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px dashed #4a4a6a;
+    background: #171727;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: center;
+  }
+  #photoInputBtn:hover { border-color: #f472b6; color: #fff; }
+  input[type=file] { display: none; }
+
+  .photo-frame {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 4px auto 20px;
+    border-radius: 50%;
+    overflow: visible;
+    display: none;
+  }
+  .photo-frame.show { display: block; }
+  .photo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #fbbf24;
+    box-shadow: 0 0 0 3px #f472b6, 0 8px 25px rgba(0,0,0,0.5);
+    display: block;
+  }
+  .photo-frame .ring {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px dashed rgba(251,191,36,0.6);
+    animation: spin 12s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .photo-frame .deco {
+    position: absolute;
+    font-size: 1.4rem;
+    animation: bob 1.6s ease-in-out infinite;
+  }
+  .photo-frame .deco.d1 { top: -14px; left: -14px; animation-delay: 0s; }
+  .photo-frame .deco.d2 { top: -14px; right: -14px; animation-delay: 0.3s; }
+  .photo-frame .deco.d3 { bottom: -10px; left: -18px; animation-delay: 0.6s; }
+  .photo-frame .deco.d4 { bottom: -10px; right: -18px; animation-delay: 0.9s; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(-8deg); }
+    50% { transform: translateY(-6px) rotate(8deg); }
+  }
+
+  button {
+    width: 100%;
+    padding: 13px;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #f472b6, #fb923c);
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  button:active { transform: scale(0.97); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  #stopBtn {
+    background: linear-gradient(90deg, #ef4444, #7c3aed);
+    margin-top: 10px;
+    display: none;
+  }
+  #stopBtn.show { display: block; }
+
+  #result {
+    margin-top: 20px;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    min-height: 30px;
+  }
+  #ageLine { color: #fde68a; font-weight: bold; }
+  #lyrics {
+    margin-top: 14px;
+    font-size: 0.95rem;
+    color: #e2e8f0;
+    min-height: 90px;
+  }
+  #lyrics span {
+    opacity: 0.25;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    display: inline-block;
+  }
+  #lyrics span.on { opacity: 1; color: #fbbf24; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="lights"></div>
+
+<div class="card">
+  <h1>🎂 عيد ميلاد سعيد</h1>
+  <div class="sub">أدخل تاريخ ميلادك واضغط زر البدء</div>
+
+  <input type="date" id="dob">
+
+  <div class="photo-upload">
+    <label id="photoInputBtn" for="photoInput">📷 أضف صورتك (اختياري)</label>
+    <input type="file" id="photoInput" accept="image/*">
+  </div>
+
+  <div class="photo-frame" id="photoFrame">
+    <div class="ring"></div>
+    <span class="deco d1">🎈</span>
+    <span class="deco d2">🎉</span>
+    <span class="deco d3">✨</span>
+    <span class="deco d4">🎂</span>
+    <img id="photoImg" src="" alt="صورتك">
+  </div>
+
+  <button id="startBtn">🎵 ابدأ الاحتفال</button>
+  <button id="stopBtn">⏹ إيقاف</button>
+
+  <div id="result">
+    <div id="ageLine"></div>
+    <div id="lyrics"></div>
+  </div>
+</div>
+
+<script>
+const dobInput = document.getElementById('dob');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const ageLine = document.getElementById('ageLine');
+const lyricsBox = document.getElementById('lyrics');
+const lightsLayer = document.getElementById('lights');
+const photoInput = document.getElementById('photoInput');
+const photoInputBtn = document.getElementById('photoInputBtn');
+const photoFrame = document.getElementById('photoFrame');
+const photoImg = document.getElementById('photoImg');
+
+let isPlaying = false;
+let activeTimeouts = [];
+
+function scheduleTimeout(fn, ms) {
+  const id = setTimeout(fn, ms);
+  activeTimeouts.push(id);
+  return id;
+}
+
+function clearAllTimeouts() {
+  activeTimeouts.forEach(id => clearTimeout(id));
+  activeTimeouts = [];
+}
+
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    photoImg.src = e.target.result;
+    photoFrame.classList.add('show');
+    photoInputBtn.textContent = '✅ تم اختيار الصورة — تغيير؟';
+  };
+  reader.readAsDataURL(file);
+});
+
+// ---------- Lights setup ----------
+const colors = ['#f87171','#fbbf24','#34d399','#60a5fa','#f472b6','#a78bfa'];
+const bulbCount = 18;
+const bulbs = [];
+for (let i = 0; i < bulbCount; i++) {
+  const b = document.createElement('div');
+  b.className = 'bulb';
+  const angle = (i / bulbCount) * Math.PI * 2;
+  const usePerimeter = true;
+  b.style.left = (Math.random()*94 + 3) + 'vw';
+  b.style.top = (Math.random()*90 + 4) + 'vh';
+  b.style.color = colors[i % colors.length];
+  b.style.background = colors[i % colors.length];
+  lightsLayer.appendChild(b);
+  bulbs.push(b);
+}
+
+function flashLights(active) {
+  bulbs.forEach(b => {
+    if (active) {
+      b.style.opacity = Math.random() > 0.4 ? 1 : 0.3;
+      b.style.transform = `scale(${0.8 + Math.random()*0.8})`;
+    } else {
+      b.style.opacity = 0.25;
+      b.style.transform = 'scale(1)';
+    }
+  });
+  if (photoFrame.classList.contains('show')) {
+    photoImg.style.transform = active ? `scale(${1.06 + Math.random()*0.05})` : 'scale(1)';
+    photoImg.style.transition = 'transform 0.12s ease';
+  }
+}
+
+function spawnConfetti(n) {
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (2 + Math.random()*2) + 's';
+    c.style.width = (6 + Math.random()*8) + 'px';
+    c.style.height = (10 + Math.random()*10) + 'px';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+
+function spawnPhotoBubbles(n) {
+  if (!photoImg.src) return;
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('div');
+    b.className = 'photo-bubble';
+    const size = 46 + Math.random() * 70;
+    b.style.width = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left = Math.random() * 92 + 'vw';
+    b.style.top = 100 + Math.random() * 10 + 'vh';
+    const dur = 5 + Math.random() * 4;
+    b.style.animationDuration = `${dur}s, ${1.5 + Math.random()*2}s`;
+    b.style.animationDelay = (Math.random() * 1.2) + 's';
+
+    const img = document.createElement('img');
+    img.src = photoImg.src;
+    b.appendChild(img);
+
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), (dur + 2) * 1000);
+  }
+}
+
+// ---------- Audio: Happy Birthday melody (public domain) ----------
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// Note frequencies
+const N = {
+  C4:261.63, D4:293.66, E4:329.63, F4:349.23, G4:392.00,
+  A4:440.00, B4:493.88, C5:523.25, D5:587.33, E5:659.25
+};
+
+// [note, duration in beats] — classic melody in C, beat = 0.4s
+const melody = [
+  [N.C4,0.75],[N.C4,0.25],[N.D4,1],[N.C4,1],[N.F4,1],[N.E4,2],
+  [N.C4,0.75],[N.C4,0.25],[N.D4,1],[N.C4,1],[N.G4,1],[N.F4,2],
+  [N.C4,0.75],[N.C4,0.25],[N.C5,1],[N.A4,1],[N.F4,1],[N.E4,1],[N.D4,2],
+  [N.B4,0.75+0.0],[N.A4,0.0], // placeholder removed below
+];
+
+// Rebuild a clean accurate sequence (standard Happy Birthday)
+const seq = [
+  ['C4',0.75], ['C4',0.25], ['D4',1], ['C4',1], ['F4',1], ['E4',2],
+  ['C4',0.75], ['C4',0.25], ['D4',1], ['C4',1], ['G4',1], ['F4',2],
+  ['C4',0.75], ['C4',0.25], ['C5',1], ['A4',1], ['F4',1], ['E4',1], ['D4',2],
+  ['A4S',0.75], ['A4S',0.25], // "Happy" (using Bb - approximate with A#4)
+];
+// Simplify: use a well-tested note table in key of F for a nicer range
+const FREQ = {
+  F4:349.23, G4:392.00, A4:440.00, A4S:466.16, Bb4:466.16,
+  C5:523.25, D5:587.33, C4:261.63
+};
+const song = [
+  // "Hap-py birth-day to you"
+  ['F4',0.75],['F4',0.25],['G4',1],['F4',1],['Bb4',1],['A4',2],
+  // "Hap-py birth-day to you"
+  ['F4',0.75],['F4',0.25],['G4',1],['F4',1],['C5',1],['Bb4',2],
+  // "Hap-py birth-day dear [name]"
+  ['F4',0.75],['F4',0.25],['F4',1],['D5',1],['Bb4',1],['A4',1],['G4',1.5],
+  // "Hap-py birth-day to you"
+  ['Bb4',0.75],['Bb4',0.25],['A4',1],['F4',1],['G4',1],['F4',2],
+];
+
+const lyricsWords = "عيد ميلاد سعيد ، عيد ميلاد سعيد ، عيد ميلاد يا غالي ، عيد ميلاد سعيد".split(' ');
+
+function renderLyrics() {
+  lyricsBox.innerHTML = lyricsWords.map(w => `<span>${w}</span>`).join(' ');
+}
+
+function playSong() {
+  if (!isPlaying) return;
+
+  const beat = 0.42;
+  let t = audioCtx.currentTime + 0.1;
+  const spans = lyricsBox.querySelectorAll('span');
+  spans.forEach(s => s.classList.remove('on'));
+  let noteIndexForWord = Math.floor(song.length / spans.length);
+  let wordCursor = 0;
+
+  song.forEach(([note, dur], i) => {
+    const freq = FREQ[note];
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const startT = t;
+    const endT = t + dur * beat * 0.92;
+    gain.gain.setValueAtTime(0, startT);
+    gain.gain.linearRampToValueAtTime(0.28, startT + 0.03);
+    gain.gain.linearRampToValueAtTime(0.0001, endT);
+
+    osc.start(startT);
+    osc.stop(endT + 0.05);
+
+    // light flash synced to each note
+    scheduleTimeout(() => { if (isPlaying) flashLights(true); }, (startT - audioCtx.currentTime) * 1000);
+    scheduleTimeout(() => { if (isPlaying) flashLights(false); }, (endT - audioCtx.currentTime) * 1000);
+
+    // highlight lyric word roughly every couple notes
+    if (i % Math.max(1, noteIndexForWord) === 0 && wordCursor < spans.length) {
+      const idx = wordCursor;
+      scheduleTimeout(() => { if (isPlaying) spans[idx].classList.add('on'); }, (startT - audioCtx.currentTime) * 1000);
+      wordCursor++;
+    }
+
+    t += dur * beat;
+  });
+
+  const totalMs = (t - audioCtx.currentTime) * 1000;
+
+  // موجات الصور العائمة والقصاصات، تتكرر مع كل دورة
+  scheduleTimeout(() => { if (isPlaying) spawnPhotoBubbles(4); }, totalMs * 0.1);
+  scheduleTimeout(() => { if (isPlaying) spawnPhotoBubbles(5); }, totalMs * 0.45);
+  scheduleTimeout(() => { if (isPlaying) spawnConfetti(60); }, totalMs * 0.6);
+  scheduleTimeout(() => {
+    if (isPlaying) { spawnConfetti(80); spawnPhotoBubbles(6); flashLights(false); }
+  }, totalMs * 0.95);
+
+  // إعادة تشغيل الأغنية تلقائياً بعد فاصل قصير، طالما لم يتم الإيقاف
+  scheduleTimeout(() => { if (isPlaying) playSong(); }, totalMs + 600);
+}
+
+function stopCelebration() {
+  isPlaying = false;
+  clearAllTimeouts();
+  flashLights(false);
+  startBtn.disabled = false;
+  startBtn.textContent = '🎵 ابدأ الاحتفال';
+  stopBtn.classList.remove('show');
+}
+
+function calcAge(dobStr) {
+  const dob = new Date(dobStr);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+startBtn.addEventListener('click', () => {
+  if (!dobInput.value) {
+    dobInput.style.borderColor = '#f87171';
+    return;
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const age = calcAge(dobInput.value);
+  ageLine.textContent = age >= 0
+    ? `🎈 عمرك الآن ${age} سنة — كل عام وأنت بخير!`
+    : `🎈 كل عام وأنت بخير!`;
+
+  renderLyrics();
+  startBtn.disabled = true;
+  startBtn.textContent = '🎶 جارٍ العزف...';
+  stopBtn.classList.add('show');
+
+  isPlaying = true;
+  playSong();
+});
+
+stopBtn.addEventListener('click', stopCelebration);
+</script>
+</body>
+</html>
