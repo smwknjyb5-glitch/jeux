@@ -1,0 +1,520 @@
+ <!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>جامع الصور في PDF</title>
+<style>
+:root{
+  --navy:#0b1f3a; --navy2:#12305a; --gold:#e8c872; --gold2:#c9a24a;
+  --card:#ffffff; --ink:#14233b; --muted:#5b6b82; --line:#d9e0ea; --bg:#eef2f8;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --card:#13233d; --ink:#eaf0fa; --muted:#9fb0c8; --line:#25395a; --bg:#0a1730; }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:"Segoe UI","Noto Naskh Arabic","Noto Sans Arabic",Tahoma,Arial,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.6;
+}
+header{
+  background:linear-gradient(160deg,var(--navy),var(--navy2));
+  color:var(--gold); text-align:center; padding:26px 16px 22px;
+  border-bottom:3px solid var(--gold2);
+}
+header h1{margin:0 0 4px; font-size:1.55rem}
+header p{margin:0; color:#cfd9ea; font-size:.95rem}
+main{max-width:980px; margin:0 auto; padding:14px}
+section{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:14px; margin-bottom:14px;
+}
+section h2{margin:0 0 10px; font-size:1.1rem; color:var(--gold2);
+  border-bottom:1px dashed var(--line); padding-bottom:6px}
+label{display:block; font-size:.88rem; color:var(--muted); margin-bottom:3px}
+input[type=text],input[type=number],select,textarea{
+  width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px;
+  background:transparent; color:var(--ink); font:inherit;
+}
+textarea{resize:vertical; min-height:48px}
+input[type=color]{width:100%; height:40px; border:1px solid var(--line); border-radius:9px; background:transparent; padding:2px}
+input[type=range]{width:100%}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px}
+.row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.check{display:flex; align-items:center; gap:8px; margin:8px 0; color:var(--ink); font-size:.95rem}
+.check input{width:18px; height:18px}
+button{
+  font:inherit; cursor:pointer; border:0; border-radius:10px; padding:10px 16px;
+  background:var(--navy2); color:#fff;
+}
+button.gold{background:linear-gradient(160deg,var(--gold),var(--gold2)); color:#1b1405; font-weight:700}
+button.small{padding:6px 10px; font-size:.85rem}
+button.danger{background:#a83232}
+button:disabled{opacity:.5; cursor:wait}
+.drop{
+  border:2px dashed var(--gold2); border-radius:12px; padding:18px; text-align:center;
+  color:var(--muted); cursor:pointer;
+}
+.drop.over{background:rgba(232,200,114,.15)}
+.item{
+  display:grid; grid-template-columns:90px 1fr; gap:10px; padding:10px;
+  border:1px solid var(--line); border-radius:12px; margin-top:10px;
+}
+.item img{width:90px; height:90px; object-fit:cover; border-radius:8px; background:#0003}
+.item .fields{display:grid; gap:6px}
+.item .tools{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.item .name{font-size:.8rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:80px}
+#preview{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px}
+#preview figure{margin:0; text-align:center}
+#preview canvas{width:100%; height:auto; border:1px solid var(--line); border-radius:6px; box-shadow:0 2px 8px #0003; background:#fff}
+#preview figcaption{font-size:.8rem; color:var(--muted); margin-top:3px}
+#status{color:var(--muted); font-size:.9rem; margin-top:8px; min-height:1.4em}
+.empty{color:var(--muted); text-align:center; padding:10px}
+footer{text-align:center; color:var(--muted); font-size:.8rem; padding:6px 0 24px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📄 جامع الصور في ملف PDF</h1>
+  <p>اجمع صورك في ملف واحد، مع نص أعلى أو أسفل كل صورة وصفحة غلاف</p>
+</header>
+
+<main>
+
+<section>
+  <h2>١) الصور</h2>
+  <div class="drop" id="drop">اضغط هنا لاختيار الصور أو اسحبها إلى هذه المنطقة</div>
+  <input type="file" id="files" accept="image/*" multiple hidden>
+  <div id="list"></div>
+</section>
+
+<section>
+  <h2>٢) إعدادات الورقة</h2>
+  <div class="grid">
+    <div>
+      <label>حجم الورقة</label>
+      <select id="size">
+        <option value="A4" selected>A4 (210×297 مم)</option>
+        <option value="A3">A3 (297×420 مم)</option>
+        <option value="A5">A5 (148×210 مم)</option>
+        <option value="A6">A6 (105×148 مم)</option>
+        <option value="Letter">Letter</option>
+        <option value="Legal">Legal</option>
+        <option value="custom">حجم مخصص…</option>
+      </select>
+    </div>
+    <div>
+      <label>الاتجاه</label>
+      <select id="orient">
+        <option value="p" selected>عمودي</option>
+        <option value="l">أفقي</option>
+      </select>
+    </div>
+    <div>
+      <label>الهوامش (مم)</label>
+      <input type="number" id="margin" value="12" min="0" max="60">
+    </div>
+    <div>
+      <label>لون خلفية الصفحات</label>
+      <input type="color" id="pageBg" value="#ffffff">
+    </div>
+  </div>
+  <div class="grid" id="customBox" style="display:none;margin-top:10px">
+    <div><label>العرض (مم)</label><input type="number" id="cw" value="210" min="30" max="1000"></div>
+    <div><label>الارتفاع (مم)</label><input type="number" id="ch" value="297" min="30" max="1000"></div>
+  </div>
+
+  <h2 style="margin-top:16px">النص</h2>
+  <div class="grid">
+    <div><label>حجم الخط (نقطة)</label><input type="number" id="fs" value="16" min="8" max="60"></div>
+    <div><label>لون النص</label><input type="color" id="txtColor" value="#14233b"></div>
+    <div>
+      <label>محاذاة النص</label>
+      <select id="talign">
+        <option value="center" selected>وسط</option>
+        <option value="right">يمين</option>
+        <option value="left">يسار</option>
+      </select>
+    </div>
+    <div>
+      <label>موضع المحتوى في الصفحة</label>
+      <select id="valign">
+        <option value="middle" selected>وسط الصفحة</option>
+        <option value="top">أعلى الصفحة</option>
+      </select>
+    </div>
+  </div>
+  <label class="check"><input type="checkbox" id="bold"> خط عريض للنص</label>
+  <label class="check"><input type="checkbox" id="pnum" checked> ترقيم الصفحات</label>
+
+  <h2 style="margin-top:16px">الجودة</h2>
+  <div class="grid">
+    <div>
+      <label>الدقة</label>
+      <select id="dpi">
+        <option value="100">منخفضة (100)، ملف أصغر</option>
+        <option value="150" selected>متوسطة (150)</option>
+        <option value="200">عالية (200)، ملف أكبر</option>
+      </select>
+    </div>
+    <div>
+      <label>جودة الضغط: <span id="qv">90</span>٪</label>
+      <input type="range" id="quality" min="50" max="100" value="90">
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>٣) صفحة الغلاف</h2>
+  <label class="check"><input type="checkbox" id="coverOn" checked> إضافة صفحة غلاف</label>
+  <div id="coverBox">
+    <div class="grid">
+      <div><label>العنوان</label><input type="text" id="cTitle" value="ألبوم الصور"></div>
+      <div><label>العنوان الفرعي</label><input type="text" id="cSub"></div>
+      <div><label>الاسم / المؤلف</label><input type="text" id="cAuthor"></div>
+      <div><label>التاريخ</label><input type="text" id="cDate"></div>
+      <div><label>لون خلفية الغلاف</label><input type="color" id="cBg" value="#0b1f3a"></div>
+      <div><label>لون نص الغلاف</label><input type="color" id="cColor" value="#e8c872"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="small" id="coverImgBtn" type="button">🖼️ صورة للغلاف (اختياري)</button>
+      <button class="small danger" id="coverImgDel" type="button" style="display:none">إزالة صورة الغلاف</button>
+      <span id="coverImgName" class="name" style="font-size:.8rem;color:var(--muted)"></span>
+      <input type="file" id="coverFile" accept="image/*" hidden>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>٤) المعاينة وإنشاء الملف</h2>
+  <div id="preview"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="gold" id="make">⬇️ إنشاء PDF وتنزيله</button>
+  </div>
+  <div id="status"></div>
+</section>
+
+</main>
+<footer>تعمل الأداة بالكامل داخل المتصفح، ولا تُرفع صورك إلى أي خادم.</footer>
+
+<script>
+(function(){
+'use strict';
+
+const FONT = '"Segoe UI","Noto Naskh Arabic","Noto Sans Arabic",Tahoma,Arial,sans-serif';
+const SIZES = {A3:[297,420], A4:[210,297], A5:[148,210], A6:[105,148], Letter:[215.9,279.4], Legal:[215.9,355.6]};
+const $ = id => document.getElementById(id);
+
+let items = [];          // {id,url,img,name,above,below}
+let coverImg = null;     // {url,img,name}
+let uid = 0;
+let previewTimer = null;
+
+/* ---------- الإعدادات ---------- */
+function S(){
+  return {
+    size:$('size').value, orient:$('orient').value,
+    cw:+$('cw').value||210, ch:+$('ch').value||297,
+    margin:Math.max(0,+$('margin').value||0),
+    pageBg:$('pageBg').value,
+    fs:Math.max(6,+$('fs').value||16), txtColor:$('txtColor').value,
+    talign:$('talign').value, valign:$('valign').value,
+    bold:$('bold').checked, pnum:$('pnum').checked,
+    dpi:+$('dpi').value, quality:(+$('quality').value)/100,
+    coverOn:$('coverOn').checked,
+    cTitle:$('cTitle').value, cSub:$('cSub').value, cAuthor:$('cAuthor').value, cDate:$('cDate').value,
+    cBg:$('cBg').value, cColor:$('cColor').value
+  };
+}
+function dimsMM(s){
+  let w,h;
+  if(s.size==='custom'){ w=s.cw; h=s.ch; } else { [w,h]=SIZES[s.size]; }
+  const mn=Math.min(w,h), mx=Math.max(w,h);
+  return s.orient==='l' ? [mx,mn] : [mn,mx];
+}
+const mm2px = (mm,dpi) => mm/25.4*dpi;
+const pt2px = (pt,dpi) => pt*dpi/72;
+
+/* ---------- الرسم ---------- */
+const isAr = t => /[\u0600-\u06FF]/.test(t);
+
+function wrap(ctx,text,maxW){
+  const out=[];
+  String(text).split('\n').forEach(para=>{
+    if(!para.trim()){ out.push(''); return; }
+    const words=para.trim().split(/\s+/);
+    let line='';
+    words.forEach(w=>{
+      const t=line?line+' '+w:w;
+      if(ctx.measureText(t).width>maxW && line){ out.push(line); line=w; } else line=t;
+    });
+    out.push(line);
+  });
+  return out;
+}
+function block(ctx,text,maxW,fsPx,bold){
+  if(!text || !text.trim()) return {lines:[],h:0,lh:0,rtl:false};
+  ctx.font=(bold?'bold ':'')+fsPx+'px '+FONT;
+  const lines=wrap(ctx,text,maxW);
+  const lh=fsPx*1.55;
+  return {lines,lh,h:lines.length*lh,rtl:isAr(text),fsPx,bold};
+}
+function drawBlock(ctx,b,x,y,maxW,align,color){
+  if(!b.lines.length) return;
+  ctx.font=(b.bold?'bold ':'')+b.fsPx+'px '+FONT;
+  ctx.fillStyle=color; ctx.textBaseline='top'; ctx.direction=b.rtl?'rtl':'ltr';
+  let px,al;
+  if(align==='center'){ px=x+maxW/2; al='center'; }
+  else if(align==='right'){ px=x+maxW; al='right'; }
+  else { px=x; al='left'; }
+  ctx.textAlign=al;
+  b.lines.forEach((ln,i)=>ctx.fillText(ln,px,y+i*b.lh+(b.lh-b.fsPx)/2));
+}
+function fit(iw,ih,bw,bh){
+  const sc=Math.min(bw/iw,bh/ih);
+  return [iw*sc, ih*sc];
+}
+function newCanvas(s,dpi){
+  const [wm,hm]=dimsMM(s);
+  const c=document.createElement('canvas');
+  c.width=Math.round(mm2px(wm,dpi)); c.height=Math.round(mm2px(hm,dpi));
+  return c;
+}
+
+function renderImagePage(it,num,s,dpi){
+  const c=newCanvas(s,dpi), ctx=c.getContext('2d');
+  const W=c.width,H=c.height, m=mm2px(s.margin,dpi);
+  ctx.fillStyle=s.pageBg; ctx.fillRect(0,0,W,H);
+  const reserve = s.pnum ? mm2px(8,dpi) : 0;
+  const availW=W-2*m, availH=H-2*m-reserve;
+  const fsPx=pt2px(s.fs,dpi), gap=fsPx*0.6;
+  const a=block(ctx,it.above,availW,fsPx,s.bold);
+  const b=block(ctx,it.below,availW,fsPx,s.bold);
+  const aH=a.h?a.h+gap:0, bH=b.h?b.h+gap:0;
+  const maxImgH=Math.max(availH*0.2, availH-aH-bH);
+  const [dw,dh]=fit(it.img.naturalWidth,it.img.naturalHeight,availW,maxImgH);
+  const groupH=aH+dh+bH;
+  let y=m+(s.valign==='middle'?Math.max(0,(availH-groupH)/2):0);
+  if(a.h){ drawBlock(ctx,a,m,y,availW,s.talign,s.txtColor); y+=aH; }
+  ctx.imageSmoothingQuality='high';
+  ctx.drawImage(it.img,m+(availW-dw)/2,y,dw,dh); y+=dh;
+  if(b.h){ y+=gap; drawBlock(ctx,b,m,y,availW,s.talign,s.txtColor); }
+  if(s.pnum){
+    ctx.font=pt2px(10,dpi)+'px '+FONT; ctx.fillStyle=s.txtColor; ctx.globalAlpha=.7;
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.direction='ltr';
+    ctx.fillText(String(num),W/2,H-m/2-reserve/4); ctx.globalAlpha=1;
+  }
+  return c;
+}
+
+function renderCover(s,dpi){
+  const c=newCanvas(s,dpi), ctx=c.getContext('2d');
+  const W=c.width,H=c.height, m=Math.max(mm2px(s.margin,dpi),mm2px(10,dpi));
+  ctx.fillStyle=s.cBg; ctx.fillRect(0,0,W,H);
+  // إطار زخرفي
+  ctx.strokeStyle=s.cColor; ctx.globalAlpha=.6; ctx.lineWidth=Math.max(2,dpi/50);
+  const f=m*0.45; ctx.strokeRect(f,f,W-2*f,H-2*f); ctx.globalAlpha=1;
+  const availW=W-2*m;
+  let top=m, bottomArea=H-m;
+  if(coverImg){
+    const boxH=(H-2*m)*0.48;
+    const [dw,dh]=fit(coverImg.img.naturalWidth,coverImg.img.naturalHeight,availW,boxH);
+    ctx.imageSmoothingQuality='high';
+    ctx.drawImage(coverImg.img,m+(availW-dw)/2,m+(boxH-dh)/2,dw,dh);
+    top=m+boxH+mm2px(6,dpi);
+  }
+  const parts=[
+    block(ctx,s.cTitle,availW,pt2px(34,dpi),true),
+    block(ctx,s.cSub,availW,pt2px(18,dpi),false),
+    block(ctx,s.cAuthor,availW,pt2px(15,dpi),false),
+    block(ctx,s.cDate,availW,pt2px(12,dpi),false)
+  ];
+  const sp=pt2px(10,dpi), lineH=Math.max(2,dpi/45);
+  let total=0; parts.forEach((p,i)=>{ if(p.h) total+=p.h+sp; });
+  if(parts[0].h) total+=lineH+sp;
+  let y=top+Math.max(0,(bottomArea-top-total)/2);
+  parts.forEach((p,i)=>{
+    if(!p.h) return;
+    drawBlock(ctx,p,m,y,availW,'center',s.cColor); y+=p.h+sp;
+    if(i===0){
+      ctx.fillStyle=s.cColor; ctx.fillRect(W/2-availW*0.12,y,availW*0.24,lineH); y+=lineH+sp;
+    }
+  });
+  return c;
+}
+
+/* ---------- المعاينة ---------- */
+function schedulePreview(){
+  clearTimeout(previewTimer);
+  previewTimer=setTimeout(renderPreview,350);
+}
+function renderPreview(){
+  const box=$('preview'); box.innerHTML='';
+  const s=S(), dpi=60;
+  if(!items.length && !s.coverOn){ box.innerHTML='<div class="empty">أضف صوراً لتظهر المعاينة هنا.</div>'; return; }
+  const add=(cv,cap)=>{
+    const fg=document.createElement('figure');
+    fg.appendChild(cv);
+    const fc=document.createElement('figcaption'); fc.textContent=cap; fg.appendChild(fc);
+    box.appendChild(fg);
+  };
+  if(s.coverOn) add(renderCover(s,dpi),'الغلاف');
+  items.forEach((it,i)=>add(renderImagePage(it,i+1,s,dpi),'صفحة '+(i+1)));
+}
+
+/* ---------- قائمة الصور ---------- */
+function loadImage(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>res({url,img,name:file.name});
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error(file.name)); };
+    img.src=url;
+  });
+}
+async function addFiles(fl){
+  const files=[...fl].filter(f=>f.type.startsWith('image/'));
+  const failed=[];
+  for(const f of files){
+    try{ const r=await loadImage(f); items.push({id:++uid,...r,above:'',below:''}); }
+    catch(e){ failed.push(f.name); }
+  }
+  if(failed.length) setStatus('تعذّر فتح: '+failed.join('، '));
+  renderList(); schedulePreview();
+}
+function renderList(){
+  const list=$('list'); list.innerHTML='';
+  if(!items.length){ list.innerHTML='<div class="empty">لم تُضف أي صورة بعد.</div>'; return; }
+  items.forEach((it,i)=>{
+    const d=document.createElement('div'); d.className='item';
+    const im=document.createElement('img'); im.src=it.url; im.alt='';
+    const f=document.createElement('div'); f.className='fields';
+    const mk=(ph,key)=>{
+      const t=document.createElement('textarea'); t.placeholder=ph; t.value=it[key]; t.rows=2;
+      t.addEventListener('input',()=>{ it[key]=t.value; schedulePreview(); });
+      return t;
+    };
+    const tools=document.createElement('div'); tools.className='tools';
+    const nm=document.createElement('span'); nm.className='name'; nm.textContent=(i+1)+'. '+it.name;
+    const btn=(txt,fn,cls)=>{ const b=document.createElement('button'); b.type='button'; b.className='small '+(cls||''); b.textContent=txt; b.onclick=fn; return b; };
+    tools.append(nm,
+      btn('⬆️',()=>move(i,-1)), btn('⬇️',()=>move(i,1)),
+      btn('🗑️',()=>remove(i),'danger'));
+    f.append(tools, mk('نص أعلى الصورة (اختياري)','above'), mk('نص أسفل الصورة (اختياري)','below'));
+    d.append(im,f); list.appendChild(d);
+  });
+}
+function move(i,dir){
+  const j=i+dir; if(j<0||j>=items.length) return;
+  [items[i],items[j]]=[items[j],items[i]];
+  renderList(); schedulePreview();
+}
+function remove(i){
+  URL.revokeObjectURL(items[i].url); items.splice(i,1);
+  renderList(); schedulePreview();
+}
+
+/* ---------- كتابة ملف PDF ---------- */
+function buildPDF(pages){
+  const enc=new TextEncoder(), parts=[], offs=[];
+  let pos=0;
+  const push=d=>{ const b=typeof d==='string'?enc.encode(d):d; parts.push(b); pos+=b.length; };
+  const n=pages.length, total=2+3*n;
+  push('%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n');
+  offs[1]=pos; push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  const kids=pages.map((_,i)=>(3+3*i)+' 0 R').join(' ');
+  offs[2]=pos; push('2 0 obj\n<< /Type /Pages /Kids ['+kids+'] /Count '+n+' >>\nendobj\n');
+  pages.forEach((p,i)=>{
+    const po=3+3*i, co=po+1, io=po+2;
+    const wpt=(p.wmm/25.4*72).toFixed(2), hpt=(p.hmm/25.4*72).toFixed(2);
+    offs[po]=pos;
+    push(po+' 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+wpt+' '+hpt+'] /Resources << /XObject << /Im0 '+io+' 0 R >> >> /Contents '+co+' 0 R >>\nendobj\n');
+    const content='q '+wpt+' 0 0 '+hpt+' 0 0 cm /Im0 Do Q';
+    offs[co]=pos;
+    push(co+' 0 obj\n<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream\nendobj\n');
+    offs[io]=pos;
+    push(io+' 0 obj\n<< /Type /XObject /Subtype /Image /Width '+p.w+' /Height '+p.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+p.bytes.length+' >>\nstream\n');
+    push(p.bytes);
+    push('\nendstream\nendobj\n');
+  });
+  const xref=pos;
+  let x='xref\n0 '+(total+1)+'\n0000000000 65535 f \n';
+  for(let i=1;i<=total;i++) x+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  x+='trailer\n<< /Size '+(total+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+  push(x);
+  return new Blob(parts,{type:'application/pdf'});
+}
+
+const toJpeg=(cv,q)=>new Promise((res,rej)=>cv.toBlob(b=>b?b.arrayBuffer().then(a=>res(new Uint8Array(a))):rej(new Error('toBlob')),'image/jpeg',q));
+const tick=()=>new Promise(r=>setTimeout(r,20));
+
+function setStatus(t){ $('status').textContent=t; }
+
+async function makePDF(){
+  const s=S();
+  if(!items.length && !s.coverOn){ setStatus('أضف صورة واحدة على الأقل.'); return; }
+  const btn=$('make'); btn.disabled=true;
+  try{
+    const [wmm,hmm]=dimsMM(s), pages=[];
+    const totalPages=items.length+(s.coverOn?1:0);
+    const push=async(cv)=>{
+      const bytes=await toJpeg(cv,s.quality);
+      pages.push({bytes,w:cv.width,h:cv.height,wmm,hmm});
+      cv.width=cv.height=1;
+      setStatus('جارٍ التجهيز… '+pages.length+' / '+totalPages);
+      await tick();
+    };
+    if(s.coverOn) await push(renderCover(s,s.dpi));
+    for(let i=0;i<items.length;i++) await push(renderImagePage(items[i],i+1,s,s.dpi));
+    const blob=buildPDF(pages);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=((s.cTitle||'images').trim().replace(/[\\/:*?"<>|]+/g,'-')||'images')+'.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+    setStatus('تم إنشاء الملف ('+totalPages+' صفحة، '+(blob.size/1048576).toFixed(2)+' م.ب).');
+  }catch(e){
+    setStatus('حدث خطأ أثناء الإنشاء. جرّب دقة أقل أو عدداً أقل من الصور.');
+  }finally{ btn.disabled=false; }
+}
+
+/* ---------- الأحداث ---------- */
+const drop=$('drop');
+drop.onclick=()=>$('files').click();
+$('files').onchange=e=>{ addFiles(e.target.files); e.target.value=''; };
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+
+$('coverImgBtn').onclick=()=>$('coverFile').click();
+$('coverFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    if(coverImg) URL.revokeObjectURL(coverImg.url);
+    coverImg=await loadImage(f);
+    $('coverImgName').textContent=f.name; $('coverImgDel').style.display='';
+    schedulePreview();
+  }catch(_){ setStatus('تعذّر فتح صورة الغلاف.'); }
+};
+$('coverImgDel').onclick=()=>{
+  if(coverImg) URL.revokeObjectURL(coverImg.url);
+  coverImg=null; $('coverImgName').textContent=''; $('coverImgDel').style.display='none';
+  schedulePreview();
+};
+
+$('size').addEventListener('change',()=>{ $('customBox').style.display=$('size').value==='custom'?'':'none'; });
+$('coverOn').addEventListener('change',()=>{ $('coverBox').style.display=$('coverOn').checked?'':'none'; });
+$('quality').addEventListener('input',()=>{ $('qv').textContent=$('quality').value; });
+
+['size','orient','margin','pageBg','fs','txtColor','talign','valign','bold','pnum','cw','ch',
+ 'coverOn','cTitle','cSub','cAuthor','cDate','cBg','cColor'].forEach(id=>{
+  $(id).addEventListener('input',schedulePreview);
+  $(id).addEventListener('change',schedulePreview);
+});
+$('make').onclick=makePDF;
+
+renderList(); renderPreview();
+})();
+</script>
+</body>
+</html>

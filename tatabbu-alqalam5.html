@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>تتبّع القلم</title>
+<style>
+:root{--navy:#0f1e3d;--card:#16294f;--gold:#e8b84a;--ink:#f4efe0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--navy);color:var(--ink);font-family:Tahoma,"Segoe UI",sans-serif}
+header{text-align:center;padding:18px 12px 4px}
+h1{margin:0;color:var(--gold);font-size:1.5rem}
+header p{margin:4px 0 0;opacity:.8;font-size:.9rem}
+.panel{max-width:900px;margin:10px auto;padding:12px;background:var(--card);border-radius:14px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #2c4478}
+.tab{padding:7px 14px;border:0;border-radius:10px;background:#2c4478;color:var(--ink);cursor:pointer;font:inherit;font-size:.9rem}
+.tab.on{background:var(--gold);color:var(--navy);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 12px;border:1px solid var(--gold);border-radius:20px;background:none;color:var(--ink);cursor:pointer;font:inherit;font-size:.85rem;min-width:42px}
+.chip.on{background:var(--gold);color:var(--navy);font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:10px;font-size:.9rem}
+select,input[type=text]{font:inherit;padding:5px;border-radius:8px;border:1px solid var(--gold);background:#fff;color:#000}
+.btn{padding:9px 16px;border:0;border-radius:10px;background:var(--gold);color:var(--navy);font:inherit;font-weight:700;cursor:pointer}
+.btn.alt{background:#2c4478;color:var(--ink)}
+:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#sheet{max-width:900px;margin:10px auto 30px;background:#fff;color:#000;padding:16px;border-radius:6px}
+.head{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px;font-size:.95rem;flex-wrap:wrap}
+#ttl{font-size:1.1rem;font-weight:700;border:0;background:none;color:#000;padding:0;min-width:200px}
+.grid{display:grid;gap:10px}
+.card{border:1.5px solid #888;border-radius:8px;padding:4px;text-align:center}
+.card svg{width:100%;height:auto;display:block;touch-action:none}
+.card small{display:block;font-size:.8rem;color:#333}
+@page{size:A4;margin:0}
+.modes{display:flex;gap:6px;margin-bottom:10px}
+.sheetonly{}
+#bookopts{display:none}
+body.bookmode .sheetonly{display:none}
+body.bookmode #bookopts{display:block}
+body.bookmode #sheet{display:none}
+#book{display:none;max-width:794px;margin:10px auto 30px;zoom:var(--z,1)}
+body.bookmode #book{display:block}
+.si{display:flex;align-items:center;gap:8px;margin-top:6px;background:#1d3563;border-radius:8px;padding:5px 10px}
+.si label{flex:1;font-size:.9rem}
+.si .btn{padding:3px 12px}
+.si .btn:disabled{opacity:.35;cursor:default}
+#bkinfo{margin-top:10px;color:var(--gold);font-weight:700;font-size:.9rem}
+.hint{margin-top:6px;font-size:.8rem;opacity:.75}
+.bpage{width:210mm;height:297mm;padding:14mm 12mm 16mm;background:#fff;color:#222;position:relative;overflow:hidden;margin:0 auto 14px;box-shadow:0 2px 12px #0008;direction:rtl}
+.bsec{margin:0 0 6mm;font-size:20pt;font-weight:900;color:#0f1e3d;border-bottom:2.5px solid #e8b84a;padding-bottom:2mm}
+.bpage .pn{position:absolute;bottom:7mm;left:0;right:0;text-align:center;font-size:10pt;color:#777}
+.bpage .shapes{display:grid;grid-template-columns:1fr 1fr;gap:5mm 6mm}
+.bpage .card{height:var(--ch);padding:2mm;display:flex;flex-direction:column;border-radius:3mm}
+.bpage .card svg{flex:1;height:0;min-height:0}
+.bpage .card small{font-size:10pt}
+.brow{display:flex;align-items:center;border:1.2px solid #bbb;border-radius:3mm;overflow:hidden;margin-bottom:3mm}
+.blab{width:26mm;text-align:center;font-weight:700;font-size:13pt;color:#0f1e3d;background:#fff6dc;height:100%;display:flex;align-items:center;justify-content:center;padding:2mm}
+.bc{flex:1;height:100%;border-inline-start:1px dashed #ddd}
+.bc svg{width:100%;height:100%;display:block}
+.bguide{font-size:14pt;line-height:2;padding-inline-start:8mm;margin:0 0 10mm}
+.bguide li{margin-bottom:3mm}
+.gd{color:#2a9d4a}
+.bcapt{display:flex;font-size:10pt;color:#555;text-align:center;direction:rtl}
+.bcapt span{flex:1}
+.bcapt span:first-child{flex:none;width:26mm}
+.bpage.cover,.bpage.cert{padding:10mm}
+.bframe{height:100%;border:4mm double #0f1e3d;border-radius:8mm;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9mm;text-align:center;background:#fffaf0;padding:0 8mm}
+.bctitle{font-size:46pt;font-weight:900;color:#0f1e3d;line-height:1.35}
+.bcsub{font-size:20pt;color:#c68a12;font-weight:700;line-height:1.6}
+.bcart{display:flex;gap:6mm;direction:rtl}
+.bcc{width:36mm;height:24mm}
+.bcc svg{width:100%;height:100%}
+.bcname{font-size:18pt;color:#333}
+.bcp{font-size:20pt;margin:2mm 0}
+.fl{border-bottom:1.2px solid #9ab;position:relative}
+.fl:before{content:"";position:absolute;left:0;right:0;top:38%;border-top:1px dashed #cdd}
+@media print{body{background:#fff}header,.panel{display:none}#sheet{margin:0;padding:10mm;max-width:none;border-radius:0}.card{break-inside:avoid}
+#book{zoom:1!important;margin:0;max-width:none}.bpage{margin:0;box-shadow:none;page-break-after:always}.bpage:last-child{page-break-after:auto}}
+</style>
+</head>
+<body>
+<header>
+  <h1>تتبّع القلم</h1>
+  <p>اختر الأشكال والحروف والأرقام، ثم اطبع الورقة أو احفظها صورة، أو دع الطفل يتتبّع بإصبعه على الشاشة</p>
+</header>
+
+<div class="panel">
+  <div class="modes"><button class="tab on" id="m-sheet">ورقة واحدة</button><button class="tab" id="m-book">كتاب (عدّة صفحات)</button></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="chips" id="chips"></div>
+  <div class="row">
+    <button class="btn alt" id="all">تحديد كل المجموعة</button>
+    <button class="btn alt" id="none">إلغاء التحديد</button>
+    <label>الخط: <select id="st"><option value="dot">نقاط</option><option value="dash">شرطات</option><option value="solid">خط متصل</option></select></label>
+    <label>السُّمك: <input type="range" id="w" min="1" max="3.4" step=".2" value="1.8"></label>
+    <label class="sheetonly">الأعمدة: <select id="cols"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+  </div>
+  <div class="row">
+    <button class="btn" id="print">طباعة</button>
+    <button class="btn sheetonly" id="save">حفظ كصورة</button>
+    <button class="btn alt sheetonly" id="clr">مسح رسم الطفل</button>
+  </div>
+  <div id="bookopts">
+    <div class="row"><label>عنوان الكتاب: <input type="text" id="bk-title" value="كتابي لتتبّع القلم" style="min-width:230px"></label></div>
+    <div class="row">
+      <label><input type="checkbox" id="bk-cover" checked> غلاف</label>
+      <label><input type="checkbox" id="bk-guide" checked> صفحة الإرشادات</label>
+      <label><input type="checkbox" id="bk-free"> صفحة كتابة حرة بعد كل قسم</label>
+      <label><input type="checkbox" id="bk-cert" checked> شهادة تشجيع</label>
+      <label><input type="checkbox" id="bk-num" checked> ترقيم الصفحات</label>
+    </div>
+    <div class="row">
+      <label>بطاقات في الصفحة (أشكال ومركبات وحيوانات): <select id="bk-cards"><option>4</option><option>6</option><option selected>8</option></select></label>
+      <label>صفوف في الصفحة (حروف وأرقام): <select id="bk-rows"><option>5</option><option>6</option><option selected>7</option></select></label>
+    </div>
+    <div class="row" style="margin-bottom:0"><b>الأقسام (اختر ورتّب):</b></div>
+    <div id="secs"></div>
+    <div id="bkinfo"></div>
+    <div class="hint">يضمّ الكتاب كل ما حدّدتَه من عناصر في التبويبات، مرتّبًا حسب الأقسام. للحفظ كملف PDF: اضغط «طباعة» ثم اختر «حفظ كـ PDF»، وقياس 100%، وأوقف الرأس والتذييل.</div>
+  </div>
+</div>
+
+<div id="book"></div>
+<div id="sheet">
+  <div class="head">
+    <input id="ttl" type="text" value="ورقة تتبّع القلم" aria-label="عنوان الورقة">
+    <span>الاسم: ................................</span>
+    <span>التاريخ: ................</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const CATS=["أشكال","مركبات","حيوانات","حروف عربية","أرقام","ABC كبيرة","abc صغيرة"];
+const SHAPES=[
+["خط مستقيم","M8 30H92"],
+["خط مائل","M8 50L92 10"],
+["خط متعرج","M8 45L26 15L44 45L62 15L80 45L92 25"],
+["خط موجي","M6 30C16 5 28 5 38 30S60 55 70 30S88 5 94 30"],
+["قفزات","M6 45H20V15H34V45H48V15H62V45H76V15H90"],
+["حلزون","M50 30C50 26 56 26 56 31C56 38 44 38 44 29C44 19 62 19 62 32C62 46 38 46 38 28C38 10 68 10 68 33C68 54 32 54 32 26"],
+["دائرة","M74 30A24 24 0 1 1 26 30A24 24 0 1 1 74 30"],
+["مربّع","M30 8H70V52H30Z"],
+["مثلّث","M50 6L88 54H12Z"],
+["نجمة","M50 4L61 24L84 25L67 40L72 58L50 48L28 58L33 40L16 25L39 24Z"],
+["قلب","M50 54C10 28 22 4 50 20C78 4 90 28 50 54"],
+["بيت","M20 54V28L50 6L80 28V54Z M42 54V38H58V54"],
+["شمس","M62 30A12 12 0 1 1 38 30A12 12 0 1 1 62 30 M50 3V9 M50 51V57 M22 30H28 M72 30H78 M30 10L34 14 M70 10L66 14 M30 50L34 46 M70 50L66 46"],
+["سمكة","M12 30C30 8 58 8 74 30C58 52 30 52 12 30Z M74 30L92 14V46Z"]
+];
+
+const VEH=[
+["سيارة","M8 40V32L18 30L28 16H62L76 30L92 32V40Z M34 42A8 8 0 1 1 18 42A8 8 0 1 1 34 42 M82 42A8 8 0 1 1 66 42A8 8 0 1 1 82 42"],
+["حافلة","M8 12H86Q92 12 92 18V44H8Z M14 18H30V30H14Z M36 18H52V30H36Z M58 18H74V30H58Z M33 46A7 7 0 1 1 19 46A7 7 0 1 1 33 46 M81 46A7 7 0 1 1 67 46A7 7 0 1 1 81 46"],
+["شاحنة","M6 12H58V42H6Z M58 22H80L92 34V42H58 M64 26H76L84 34H64Z M27 46A7 7 0 1 1 13 46A7 7 0 1 1 27 46 M53 46A7 7 0 1 1 39 46A7 7 0 1 1 53 46 M85 46A7 7 0 1 1 71 46A7 7 0 1 1 85 46"],
+["دراجة","M22 42L38 22L48 42Z M38 22H64L48 42 M64 22L78 42 M64 22L62 15H70 M38 22L36 17H44 M35 42A13 13 0 1 1 9 42A13 13 0 1 1 35 42 M91 42A13 13 0 1 1 65 42A13 13 0 1 1 91 42"],
+["طائرة","M50 4Q54 4 54 12V24L92 40V46L54 38V50L64 56V58L50 54L36 58V56L46 50V38L8 46V40L46 24V12Q46 4 50 4Z"],
+["قارب","M12 40H88L76 54H24Z M50 6L78 36H50Z M46 12L22 36H46Z"],
+["قطار","M8 24H62V44H8Z M14 24V12H26V24 M62 14H86V44H62Z M68 20H80V30H68Z M26 48A6 6 0 1 1 14 48A6 6 0 1 1 26 48 M48 48A6 6 0 1 1 36 48A6 6 0 1 1 48 48 M80 48A6 6 0 1 1 68 48A6 6 0 1 1 80 48"],
+["صاروخ","M50 4Q64 18 64 36V46H36V36Q36 18 50 4Z M36 36L24 48V54L36 46 M64 36L76 48V54L64 46 M56 26A6 6 0 1 1 44 26A6 6 0 1 1 56 26 M42 46L50 58L58 46"],
+["مروحية","M26 34Q26 22 44 22Q64 22 64 34Q64 44 44 44Q26 44 26 34Z M64 30H92V36H64 M92 26V40 M44 22V14 M16 14H72 M30 50H62 M36 44V50 M56 44V50"],
+["غواصة","M10 36Q10 26 24 26H76Q90 26 90 36Q90 46 76 46H24Q10 46 10 36Z M40 26V16H54V26 M54 18H62 M33 36A3 3 0 1 1 27 36A3 3 0 1 1 33 36 M49 36A3 3 0 1 1 43 36A3 3 0 1 1 49 36 M65 36A3 3 0 1 1 59 36A3 3 0 1 1 65 36 M90 36H96 M96 30V42"]
+];
+const ANI=[
+["قطة","M22 20L28 4L42 14Q50 12 58 14L72 4L78 20Q86 30 80 42Q72 54 50 54Q28 54 20 42Q14 30 22 20Z M40 30A2.5 2.5 0 1 1 35 30A2.5 2.5 0 1 1 40 30 M65 30A2.5 2.5 0 1 1 60 30A2.5 2.5 0 1 1 65 30 M46 40H54L50 44Z M12 38H30 M12 46H30 M70 38H88 M70 46H88"],
+["أرنب","M38 34Q30 34 30 24L32 6Q36 2 40 6L44 22Q50 20 56 22L60 6Q64 2 68 6L70 24Q70 34 62 34Q76 40 74 48Q72 56 50 56Q28 56 26 48Q24 40 38 34Z M42 44A2 2 0 1 1 38 44A2 2 0 1 1 42 44 M62 44A2 2 0 1 1 58 44A2 2 0 1 1 62 44"],
+["بطة","M10 30L22 34Q34 36 46 34Q58 32 58 22Q58 8 72 8Q86 8 86 20L96 24L86 28Q86 34 80 38Q74 54 44 54Q16 54 10 30Z M75 17A1.5 1.5 0 1 1 72 17A1.5 1.5 0 1 1 75 17"],
+["فراشة","M50 30Q36 4 16 10Q6 24 28 34Q8 40 20 52Q38 56 50 38Q62 56 80 52Q92 40 72 34Q94 24 84 10Q64 4 50 30Z M50 22V46 M50 24L42 12 M50 24L58 12"],
+["سلحفاة","M18 42Q18 14 50 14Q82 14 82 42Z M82 36Q96 30 96 40Q94 46 82 42 M28 42V52H38V42 M62 42V52H72V42 M18 40L8 44L18 44 M50 14V42 M34 42Q34 24 50 14 M66 42Q66 24 50 14"],
+["حوت","M6 34Q10 12 44 12Q72 12 84 30L94 16L98 38L84 40Q72 52 44 52Q10 52 6 34Z M30 12Q30 4 24 2 M30 12Q30 4 36 2 M24 30A2 2 0 1 1 20 30A2 2 0 1 1 24 30"],
+["فيل","M34 16Q50 6 76 12Q92 18 92 36V52H80V42H66V52H54V42H40V52H30V40Q22 40 22 52Q22 58 14 58Q8 58 10 48V30Q10 16 34 16Z M26 26A1.5 1.5 0 1 1 23 26A1.5 1.5 0 1 1 26 26"],
+["نحلة","M30 30Q30 14 50 14Q70 14 70 30Q70 46 50 46Q30 46 30 30Z M32 22H68 M30 30H70 M32 38H68 M42 14Q34 2 26 8Q24 16 42 18 M58 14Q66 2 74 8Q76 16 58 18 M50 46V54 M50 14L44 6 M50 14L56 6"],
+["حلزون","M8 48H80Q94 48 92 36Q90 28 84 24 M84 24L80 10 M84 24L92 12 M24 48Q10 40 14 28Q22 12 42 16Q56 20 52 36Q48 46 36 40Q30 34 38 30"]
+];
+const AR="ا ألف,أ ألف بهمزة فوق,إ ألف بهمزة تحت,آ ألف المد,ء همزة,ؤ همزة على واو,ئ همزة على ياء,ب باء,ت تاء,ث ثاء,ج جيم,ح حاء,خ خاء,د دال,ذ ذال,ر راء,ز زاي,س سين,ش شين,ص صاد,ض ضاد,ط طاء,ظ ظاء,ع عين,غ غين,ف فاء,ق قاف,ك كاف,ل لام,م ميم,ن نون,ه هاء,H هاء ببطنيها,و واو,ي ياء".split(",");
+const P=[];
+SHAPES.forEach(s=>P.push({n:s[0],d:s[1],c:0}));
+VEH.forEach(s=>P.push({n:s[0],d:s[1],c:1}));
+ANI.forEach(s=>P.push({n:s[0],d:s[1],c:2}));
+AR.forEach(s=>P.push({n:s.slice(2),g:s[0]=='H'?'\u200Dه\u200D':s[0],c:3,ar:1}));
+"0123456789".split("").forEach(ch=>P.push({n:ch,g:ch,c:4}));
+"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(ch=>P.push({n:ch,g:ch,c:5}));
+"abcdefghijklmnopqrstuvwxyz".split("").forEach(ch=>P.push({n:ch,g:ch,c:6}));
+
+let sel=new Set([0,1,2,3,6,9]),cat=0;const ink={};
+const $=id=>document.getElementById(id);
+const FONT="Tahoma,'Segoe UI',Arial,sans-serif";
+
+function svg(i,noInk){
+  const p=P[i],w=+$('w').value,st=$('st').value;
+  const sw=p.g?w*0.55:w;
+  const da=st=='dot'?`0.1 ${(sw*2.4).toFixed(1)}`:st=='dash'?`${(sw*2.2).toFixed(1)} ${(sw*1.6).toFixed(1)}`:'none';
+  const strokes=noInk?'':(ink[i]||[]).map(s=>`<path d="${s}"/>`).join('');
+  let body;
+  if(p.g){
+    const y=p.ar?('أآ'.includes(p.g)?46:'ؤئ'.includes(p.g)?42:36):46,fs=p.ar?44:50;
+    body=`<text x="50" y="${y}" text-anchor="middle" font-family="${FONT}" font-size="${fs}" font-weight="bold" fill="none" stroke="#333" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${da}">${p.g}</text>`;
+  }else{
+    const m=p.d.match(/M\s*([\d.]+)[\s,]+([\d.]+)/);
+    body=`<path d="${p.d}" fill="none" stroke="#333" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${da}"/><circle cx="${m[1]}" cy="${m[2]}" r="2.8" fill="#2a9d4a"/>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60" data-i="${i}"><rect width="100" height="60" fill="#fff"/>${body}<g class="ink" fill="none" stroke="#1565c0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">${strokes}</g></svg>`;
+}
+function tabs(){
+  $('tabs').innerHTML=CATS.map((c,k)=>`<button class="tab${k==cat?' on':''}" data-k="${k}">${c}</button>`).join('');
+}
+function chips(){
+  $('chips').innerHTML=P.map((p,i)=>p.c!==cat?'':`<button class="chip${sel.has(i)?' on':''}" data-i="${i}" aria-pressed="${sel.has(i)}">${p.g||p.n}</button>`).join('');
+}
+function renderSheet(){
+  const g=$('grid');
+  g.style.gridTemplateColumns=`repeat(${$('cols').value},1fr)`;
+  g.innerHTML=[...sel].sort((a,b)=>a-b).map(i=>`<div class="card">${svg(i)}<small>${P[i].g&&P[i].ar?P[i].g+' — '+P[i].n:P[i].n}</small></div>`).join('')||'<p>اختر عنصرًا واحدًا على الأقل.</p>';
+}
+$('tabs').onclick=e=>{const b=e.target.closest('.tab');if(!b)return;cat=+b.dataset.k;tabs();chips();};
+$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const i=+b.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);chips();render();};
+$('all').onclick=()=>{P.forEach((p,i)=>{if(p.c===cat)sel.add(i)});chips();render();};
+$('none').onclick=()=>{P.forEach((p,i)=>{if(p.c===cat)sel.delete(i)});chips();render();};
+['st','w','cols'].forEach(id=>$(id).oninput=render);
+$('clr').onclick=()=>{for(const k in ink)delete ink[k];render();};
+$('print').onclick=()=>window.print();
+
+/* drawing with finger / mouse */
+let cur=null;
+function pt(s,e){const p=s.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(s.getScreenCTM().inverse());return [q.x.toFixed(1),q.y.toFixed(1)];}
+$('grid').addEventListener('pointerdown',e=>{
+  const s=e.target.closest('svg');if(!s)return;
+  s.setPointerCapture(e.pointerId);
+  const [x,y]=pt(s,e);
+  const el=document.createElementNS('http://www.w3.org/2000/svg','path');
+  s.querySelector('.ink').appendChild(el);
+  cur={s,el,i:+s.dataset.i,d:`M${x} ${y}L${x} ${y}`};el.setAttribute('d',cur.d);
+});
+$('grid').addEventListener('pointermove',e=>{
+  if(!cur)return;const [x,y]=pt(cur.s,e);cur.d+=`L${x} ${y}`;cur.el.setAttribute('d',cur.d);
+});
+const end=()=>{if(!cur)return;(ink[cur.i]=ink[cur.i]||[]).push(cur.d);cur=null;};
+$('grid').addEventListener('pointerup',end);
+$('grid').addEventListener('pointercancel',end);
+
+/* save as PNG */
+$('save').onclick=async()=>{
+  const ids=[...sel].sort((a,b)=>a-b);if(!ids.length)return;
+  const cols=+$('cols').value,cw=600,ch=360,lh=36,pad=20,top=70;
+  const rows=Math.ceil(ids.length/cols);
+  const c=document.createElement('canvas');
+  c.width=cols*(cw+pad)+pad;c.height=top+rows*(ch+lh+pad)+pad;
+  const x=c.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#000';x.direction='rtl';x.textAlign='right';x.font='bold 28px Tahoma';
+  x.fillText($('ttl').value,c.width-pad,44);
+  x.font='20px Tahoma';x.textAlign='left';x.fillText('الاسم: ........................',pad,44);
+  for(let k=0;k<ids.length;k++){
+    const col=cols-1-(k%cols),row=Math.floor(k/cols);
+    const ox=pad+col*(cw+pad),oy=top+row*(ch+lh+pad);
+    const img=new Image();
+    await new Promise(r=>{img.onload=r;img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg(ids[k]));});
+    x.strokeStyle='#888';x.lineWidth=2;x.strokeRect(ox,oy,cw,ch+lh);
+    x.drawImage(img,ox,oy,cw,ch);
+    x.fillStyle='#333';x.textAlign='center';x.font='20px Tahoma';x.fillText(P[ids[k]].n,ox+cw/2,oy+ch+25);
+  }
+  const a=document.createElement('a');a.download='tatabbu-alqalam.png';a.href=c.toDataURL('image/png');a.click();
+};
+
+/* ---------- book mode ---------- */
+const BT=["الأشكال والخطوط","المركبات","الحيوانات","الحروف العربية","الأرقام","الحروف الكبيرة — Capital Letters","الحروف الصغيرة — Small Letters"];
+const NUMW=["صفر","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة"];
+let order=[0,1,2,3,4,5,6];const skip=new Set();
+const esc=t=>String(t).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const on=id=>$(id).checked;
+function render(){document.body.classList.contains('bookmode')?renderBook():renderSheet();}
+
+function gcell(p,mode){
+  const ar=!!p.ar,base=ar?('أآ'.includes(p.g)?25:'ؤئ'.includes(p.g)?23:20):24,fs=ar?25:(p.c==4?26:27),low=p.c==6,st=$('st').value;
+  const da=st=='dot'?'0.01 1.7':st=='dash'?'2.4 1.6':'none';
+  let g=`<line x1="1" x2="39" y1="${base}" y2="${base}" stroke="#9ab" stroke-width=".5"/><line x1="1" x2="39" y1="5" y2="5" stroke="#cdd" stroke-width=".35" stroke-dasharray="1.2 1.2"/>`;
+  if(low){const m=(base-fs*.5).toFixed(1);g+=`<line x1="1" x2="39" y1="${m}" y2="${m}" stroke="#cdd" stroke-width=".35" stroke-dasharray="1.2 1.2"/>`;}
+  let t='';
+  if(mode=='m')t=`<text x="20" y="${base}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${fs}" fill="#222">${p.g}</text>`;
+  else if(mode=='d')t=`<text x="20" y="${base}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${fs}" fill="none" stroke="#444" stroke-width=".75" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="${da}">${p.g}</text>`;
+  return `<div class="bc"><svg viewBox="0 0 40 35">${g}${t}</svg></div>`;
+}
+function grow(p,h){
+  const lab=p.ar?p.n:p.c==4?NUMW[+p.g]:p.g.toUpperCase()+p.g.toLowerCase();
+  return `<div class="brow" dir="${p.ar?'rtl':'ltr'}" style="height:${h}mm"><div class="blab">${lab}</div>${gcell(p,'m')}${gcell(p,'d').repeat(3)}${gcell(p,'b')}</div>`;
+}
+function coverHTML(secs){
+  const deco=[...sel].sort((a,b)=>a-b).filter(i=>P[i].c<3&&secs.includes(P[i].c)).slice(0,4).map(i=>`<div class="bcc">${svg(i,true)}</div>`).join('');
+  const sub=secs.map(c=>BT[c].split(' — ')[0]).join(' • ');
+  return `<div class="bframe"><div class="bctitle">${esc($('bk-title').value||'كتابي')}</div><div class="bcsub">${sub}</div><div class="bcart">${deco}</div><div class="bcname">الاسم: ....................................</div><div class="bcname">السنة الدراسية: ........................</div></div>`;
+}
+function guideHTML(){
+  const ex={g:'ب',ar:1,c:3,n:'اسم الحرف'};
+  return `<h2 class="bsec">كيف نستعمل الكتاب؟</h2><ol class="bguide"><li>نجلس جلسة صحيحة، ونمسك القلم بثلاثة أصابع دون ضغط شديد.</li><li>في الأشكال نبدأ من <b class="gd">النقطة الخضراء</b> ونتبع النقاط حتى نعود إليها أو ننتهي.</li><li>في الحروف والأرقام نبدأ من أعلى النموذج ونمرّ بالقلم فوق النقاط ببطء، ونرفعه أقل ما يمكن.</li><li>الصف الواحد فيه <b>نموذج</b> ثم <b>ثلاث مرات للتتبّع</b> ثم مربّع أخير نكتب فيه وحدنا.</li><li>نحرص على أن يقع الحرف على <b>الخط السفلي</b>، وأن لا يتجاوز الخط العلوي المنقّط.</li><li>نشجّع الطفل على المحاولة، ونكتفي بتمرين قصير كل يوم بدل جلسة طويلة.</li></ol><div style="font-size:12pt;margin-bottom:2mm">مثال على الصف:</div>${grow(ex,30)}<div class="bcapt"><span></span><span>نموذج</span><span>تتبّع</span><span>تتبّع</span><span>تتبّع</span><span>اكتب وحدك</span></div>`;
+}
+function bookPages(){
+  const secs=order.filter(c=>!skip.has(c)&&[...sel].some(i=>P[i].c==c));
+  const pg=[];
+  if(on('bk-cover'))pg.push({k:'cover',h:coverHTML(secs)});
+  if(on('bk-guide'))pg.push({k:'guide',num:1,h:guideHTML()});
+  secs.forEach(c=>{
+    const ids=[...sel].filter(i=>P[i].c==c).sort((a,b)=>a-b);
+    const gl=c>=3,per=gl?+$('bk-rows').value:+$('bk-cards').value;
+    for(let k=0;k<ids.length;k+=per){
+      const ch=ids.slice(k,k+per);let body;
+      if(gl){const h=Math.min(34,(252-3*(per-1))/per).toFixed(1);body=`<div>${ch.map(i=>grow(P[i],h)).join('')}</div>`;}
+      else{const rows=Math.ceil(per/2),h=Math.min(62,(252-5*(rows-1))/rows).toFixed(1);body=`<div class="shapes" style="--ch:${h}mm">${ch.map(i=>`<div class="card">${svg(i,true)}<small>${P[i].n}</small></div>`).join('')}</div>`;}
+      pg.push({k:'p',num:1,h:`<h2 class="bsec">${BT[c]}${k>0?' (تابع)':''}</h2>`+body});
+    }
+    if(on('bk-free'))pg.push({k:'p',num:1,h:`<h2 class="bsec">صفحة للكتابة الحرة — ${BT[c].split(' — ')[0]}</h2>`+'<div class="fl" style="height:26mm"></div>'.repeat(9)});
+  });
+  if(on('bk-cert'))pg.push({k:'cert',h:`<div class="bframe"><div class="bctitle">شهادة تشجيع</div><p class="bcp">تُمنح هذه الشهادة إلى البطل / البطلة</p><p class="bcp">......................................................</p><p class="bcp">لإتمامه كتاب «${esc($('bk-title').value||'كتابي')}» بإتقان وصبر</p><p class="bcp" style="margin-top:12mm">التاريخ: ................... &nbsp;&nbsp;&nbsp; الإمضاء: ...................</p></div>`});
+  return pg;
+}
+function renderSecs(){
+  $('secs').innerHTML=order.map((c,k)=>{const n=[...sel].filter(i=>P[i].c==c).length;
+    return `<div class="si"><label><input type="checkbox" data-c="${c}" ${(!skip.has(c)&&n)?'checked':''} ${n?'':'disabled'}> ${BT[c]} <small>(${n})</small></label><button class="btn alt" data-up="${k}" ${k?'':'disabled'}>↑</button><button class="btn alt" data-dn="${k}" ${k<order.length-1?'':'disabled'}>↓</button></div>`;}).join('');
+}
+function fit(){$('book').style.setProperty('--z',Math.min(1,(document.documentElement.clientWidth-16)/794));}
+function renderBook(){
+  renderSecs();
+  const pgs=bookPages();let n=0;
+  $('book').innerHTML=pgs.map(p=>{
+    let num='';
+    if(p.num){n++;if(on('bk-num'))num=`<div class="pn">${n}</div>`;}
+    return `<section class="bpage ${p.k}">${p.h}${num}</section>`;}).join('')||'<p style="text-align:center;color:#fff">حدّد عنصرًا واحدًا على الأقل.</p>';
+  $('bkinfo').textContent=`عدد صفحات الكتاب: ${pgs.length}`;
+  fit();
+}
+$('secs').onclick=e=>{
+  const b=e.target.closest('button');
+  if(b){const up=b.dataset.up!==undefined,k=+(up?b.dataset.up:b.dataset.dn),j=up?k-1:k+1;
+    if(j<0||j>=order.length)return;[order[k],order[j]]=[order[j],order[k]];render();return;}
+  const cb=e.target.closest('input[data-c]');
+  if(cb){cb.checked?skip.delete(+cb.dataset.c):skip.add(+cb.dataset.c);render();}
+};
+['bk-title','bk-cards','bk-rows','bk-cover','bk-guide','bk-free','bk-cert','bk-num'].forEach(id=>{$(id).addEventListener('input',render);$(id).addEventListener('change',render);});
+function setMode(b){document.body.classList.toggle('bookmode',b);$('m-book').classList.toggle('on',b);$('m-sheet').classList.toggle('on',!b);render();}
+$('m-sheet').onclick=()=>setMode(false);
+$('m-book').onclick=()=>setMode(true);
+addEventListener('resize',fit);
+tabs();chips();render();
+</script>
+</body>
+</html>

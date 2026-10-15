@@ -1,1 +1,1435 @@
-  
+  ```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لعبة الكلمات التعليمية</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Tahoma, Arial, sans-serif;
+  background:linear-gradient(135deg,#07152d,#102b52,#07152d);
+  color:white;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+.container{
+  width:95%;
+  max-width:1000px;
+  margin:25px auto;
+  position:relative;
+  z-index:2;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:10px;
+  font-size:32px;
+}
+
+.subtitle{
+  text-align:center;
+  margin-bottom:20px;
+  opacity:.9;
+}
+
+/* ===== اختيار الصنف ===== */
+
+.categoryBox{
+  background:rgba(255,255,255,.08);
+  border-radius:18px;
+  padding:15px;
+  margin-bottom:20px;
+  box-shadow:0 5px 20px rgba(0,0,0,.25);
+}
+
+.categoryTitle{
+  text-align:center;
+  font-size:20px;
+  margin-bottom:12px;
+}
+
+.categoryButtons{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+}
+
+.categoryButtons button{
+  border:none;
+  border-radius:10px;
+  padding:9px 14px;
+  background:#234a7a;
+  color:white;
+  cursor:pointer;
+  font-size:14px;
+  transition:.2s;
+}
+
+.categoryButtons button:hover{
+  transform:translateY(-2px);
+  background:#32669f;
+}
+
+.categoryButtons button.active{
+  background:#f5b642;
+  color:#111;
+  font-weight:bold;
+}
+
+/* ===== المعلومات ===== */
+
+.info{
+  display:flex;
+  justify-content:space-around;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.infoBox{
+  background:rgba(255,255,255,.1);
+  padding:12px 20px;
+  border-radius:12px;
+  min-width:150px;
+  text-align:center;
+}
+
+.infoBox span{
+  font-weight:bold;
+  font-size:20px;
+}
+
+/* ===== التصنيف ===== */
+
+.categoryLabel{
+  text-align:center;
+  font-size:22px;
+  margin:15px 0;
+  color:#ffd76a;
+}
+
+/* ===== الإجابة ===== */
+
+#answerArea{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:8px;
+  min-height:60px;
+  margin:20px 0;
+}
+
+.slot{
+  width:48px;
+  height:48px;
+  border:2px dashed #789;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:25px;
+  background:rgba(255,255,255,.06);
+}
+
+.slot.filled{
+  border-style:solid;
+  background:#275d91;
+  cursor:pointer;
+}
+
+/* ===== الحروف ===== */
+
+#lettersArea{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:9px;
+  margin:20px 0;
+}
+
+.tile{
+  width:50px;
+  height:50px;
+  border:none;
+  border-radius:12px;
+  background:#e8f1ff;
+  color:#102b52;
+  font-size:25px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 4px 8px rgba(0,0,0,.3);
+}
+
+.tile:hover{
+  transform:scale(1.08);
+}
+
+.tile.used{
+  opacity:.25;
+  cursor:not-allowed;
+}
+
+/* ===== الأزرار ===== */
+
+.controls{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:20px 0;
+}
+
+.controls button{
+  border:none;
+  border-radius:12px;
+  padding:12px 20px;
+  font-size:17px;
+  cursor:pointer;
+  color:white;
+}
+
+#checkBtn{
+  background:#159447;
+}
+
+#undoBtn{
+  background:#4267a9;
+}
+
+#hintBtn{
+  background:#b88900;
+}
+
+#skipBtn{
+  background:#b63838;
+}
+
+.controls button:hover{
+  opacity:.85;
+}
+
+/* ===== الرسائل ===== */
+
+.message{
+  min-height:35px;
+  text-align:center;
+  font-size:19px;
+  margin:10px;
+}
+
+.message.ok{
+  color:#62ff9a;
+}
+
+.message.err{
+  color:#ff7777;
+}
+
+#hintText{
+  text-align:center;
+  color:#ffe477;
+  min-height:30px;
+}
+
+/* ===== النجوم ===== */
+
+#stars{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  z-index:0;
+  pointer-events:none;
+}
+
+.star{
+  position:absolute;
+  background:white;
+  border-radius:50%;
+  animation:twinkle infinite alternate;
+}
+
+@keyframes twinkle{
+  from{
+    opacity:.15;
+  }
+  to{
+    opacity:1;
+  }
+}
+
+.footer{
+  text-align:center;
+  margin-top:25px;
+  opacity:.7;
+  font-size:13px;
+}
+
+/* ===== الهاتف ===== */
+
+@media(max-width:600px){
+
+  h1{
+    font-size:25px;
+  }
+
+  .infoBox{
+    min-width:120px;
+    padding:10px;
+  }
+
+  .slot{
+    width:40px;
+    height:40px;
+    font-size:21px;
+  }
+
+  .tile{
+    width:43px;
+    height:43px;
+    font-size:21px;
+  }
+
+  .categoryButtons button{
+    font-size:12px;
+    padding:8px 10px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div id="stars"></div>
+
+<div class="container">
+
+<h1>🎯 لعبة الكلمات التعليمية</h1>
+
+<div class="subtitle">
+رتّب الحروف لتكوين الكلمة الصحيحة
+</div>
+
+<!-- ===== اختيار الصنف ===== -->
+
+<div class="categoryBox">
+
+<div class="categoryTitle">
+📚 اختر الصنف
+</div>
+
+<div class="categoryButtons" id="categoryButtons"></div>
+
+</div>
+
+<!-- ===== المعلومات ===== -->
+
+<div class="info">
+
+<div class="infoBox">
+النقاط
+<br>
+<span id="scoreVal">0</span>
+</div>
+
+<div class="infoBox">
+المحاولات
+<br>
+<span id="triesVal">3</span>
+</div>
+
+<div class="infoBox">
+الجولة
+<br>
+<span id="roundVal">1</span>
+</div>
+
+</div>
+
+<div id="categoryLabel" class="categoryLabel">
+التصنيف: -
+</div>
+
+<!-- ===== منطقة الإجابة ===== -->
+
+<div id="answerArea"></div>
+
+<!-- ===== الحروف ===== -->
+
+<div id="lettersArea"></div>
+
+<div id="hintText"></div>
+
+<div id="message" class="message"></div>
+
+<!-- ===== الأزرار ===== -->
+
+<div class="controls">
+
+<button id="checkBtn">
+✅ تحقق
+</button>
+
+<button id="undoBtn">
+↩️ تراجع
+</button>
+
+<button id="hintBtn">
+💡 تلميح
+</button>
+
+<button id="skipBtn">
+⏭️ تخطي
+</button>
+
+</div>
+
+<div class="footer">
+لعبة تعليمية للكلمات والمفردات
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   بيانات الكلمات
+========================================================= */
+
+const wordBank = [
+
+/* ===== 1 الفضاء ===== */
+
+{word:"قمر",cat:"الفضاء"},
+{word:"شمس",cat:"الفضاء"},
+{word:"نجمة",cat:"الفضاء"},
+{word:"كوكب",cat:"الفضاء"},
+{word:"مريخ",cat:"الفضاء"},
+{word:"زحل",cat:"الفضاء"},
+{word:"مجرة",cat:"الفضاء"},
+{word:"مذنب",cat:"الفضاء"},
+{word:"فضاء",cat:"الفضاء"},
+{word:"مركبة",cat:"الفضاء"},
+
+/* ===== 2 الفواكه ===== */
+
+{word:"تفاح",cat:"الفواكه"},
+{word:"موز",cat:"الفواكه"},
+{word:"عنب",cat:"الفواكه"},
+{word:"برتقال",cat:"الفواكه"},
+{word:"ليمون",cat:"الفواكه"},
+{word:"رمان",cat:"الفواكه"},
+{word:"تمر",cat:"الفواكه"},
+{word:"تين",cat:"الفواكه"},
+{word:"خوخ",cat:"الفواكه"},
+{word:"مشمش",cat:"الفواكه"},
+
+/* ===== 3 الخضروات ===== */
+
+{word:"جزر",cat:"الخضروات"},
+{word:"بطاطا",cat:"الخضروات"},
+{word:"طماطم",cat:"الخضروات"},
+{word:"بصل",cat:"الخضروات"},
+{word:"ثوم",cat:"الخضروات"},
+{word:"خس",cat:"الخضروات"},
+{word:"فلفل",cat:"الخضروات"},
+{word:"قرع",cat:"الخضروات"},
+{word:"باذنجان",cat:"الخضروات"},
+{word:"سبانخ",cat:"الخضروات"},
+
+/* ===== 4 الحيوانات ===== */
+
+{word:"أسد",cat:"الحيوانات"},
+{word:"نمر",cat:"الحيوانات"},
+{word:"فيل",cat:"الحيوانات"},
+{word:"حصان",cat:"الحيوانات"},
+{word:"قطة",cat:"الحيوانات"},
+{word:"كلب",cat:"الحيوانات"},
+{word:"جمل",cat:"الحيوانات"},
+{word:"بقرة",cat:"الحيوانات"},
+{word:"غنم",cat:"الحيوانات"},
+{word:"ماعز",cat:"الحيوانات"},
+
+/* ===== 5 الطيور ===== */
+
+{word:"حمامة",cat:"الطيور"},
+{word:"عصفور",cat:"الطيور"},
+{word:"نسر",cat:"الطيور"},
+{word:"صقر",cat:"الطيور"},
+{word:"بومة",cat:"الطيور"},
+{word:"غراب",cat:"الطيور"},
+{word:"بط",cat:"الطيور"},
+{word:"دجاجة",cat:"الطيور"},
+{word:"ديك",cat:"الطيور"},
+{word:"هدهد",cat:"الطيور"},
+
+/* ===== 6 الأسماك ===== */
+
+{word:"سردين",cat:"الأسماك"},
+{word:"تونة",cat:"الأسماك"},
+{word:"حوت",cat:"الأسماك"},
+{word:"قرش",cat:"الأسماك"},
+{word:"سمك",cat:"الأسماك"},
+{word:"جمبري",cat:"الأسماك"},
+{word:"روبيان",cat:"الأسماك"},
+{word:"سلمون",cat:"الأسماك"},
+
+/* ===== 7 النباتات ===== */
+
+{word:"شجرة",cat:"النباتات"},
+{word:"زهرة",cat:"النباتات"},
+{word:"وردة",cat:"النباتات"},
+{word:"نخلة",cat:"النباتات"},
+{word:"زيتون",cat:"النباتات"},
+{word:"عشب",cat:"النباتات"},
+{word:"قمح",cat:"النباتات"},
+{word:"شعير",cat:"النباتات"},
+
+/* ===== 8 الطبيعة ===== */
+
+{word:"جبل",cat:"الطبيعة"},
+{word:"بحر",cat:"الطبيعة"},
+{word:"نهر",cat:"الطبيعة"},
+{word:"غابة",cat:"الطبيعة"},
+{word:"صحراء",cat:"الطبيعة"},
+{word:"مطر",cat:"الطبيعة"},
+{word:"ثلج",cat:"الطبيعة"},
+{word:"ريح",cat:"الطبيعة"},
+{word:"برق",cat:"الطبيعة"},
+{word:"رعد",cat:"الطبيعة"},
+
+/* ===== 9 المهن ===== */
+
+{word:"طبيب",cat:"المهن"},
+{word:"معلم",cat:"المهن"},
+{word:"مهندس",cat:"المهن"},
+{word:"طيار",cat:"المهن"},
+{word:"شرطي",cat:"المهن"},
+{word:"جندي",cat:"المهن"},
+{word:"نجار",cat:"المهن"},
+{word:"حداد",cat:"المهن"},
+{word:"خباز",cat:"المهن"},
+{word:"فلاح",cat:"المهن"},
+
+/* ===== 10 الألوان ===== */
+
+{word:"أحمر",cat:"الألوان"},
+{word:"أزرق",cat:"الألوان"},
+{word:"أخضر",cat:"الألوان"},
+{word:"أصفر",cat:"الألوان"},
+{word:"أبيض",cat:"الألوان"},
+{word:"أسود",cat:"الألوان"},
+{word:"برتقالي",cat:"الألوان"},
+{word:"بنفسجي",cat:"الألوان"},
+{word:"وردي",cat:"الألوان"},
+{word:"بني",cat:"الألوان"},
+
+/* ===== 11 البلدان ===== */
+
+{word:"الجزائر",cat:"البلدان"},
+{word:"مصر",cat:"البلدان"},
+{word:"تونس",cat:"البلدان"},
+{word:"المغرب",cat:"البلدان"},
+{word:"ليبيا",cat:"البلدان"},
+{word:"موريتانيا",cat:"البلدان"},
+{word:"السودان",cat:"البلدان"},
+{word:"سوريا",cat:"البلدان"},
+{word:"العراق",cat:"البلدان"},
+{word:"فلسطين",cat:"البلدان"},
+
+/* ===== 12 المدن ===== */
+
+{word:"عنابة",cat:"المدن"},
+{word:"الجزائر",cat:"المدن"},
+{word:"وهران",cat:"المدن"},
+{word:"قسنطينة",cat:"المدن"},
+{word:"سطيف",cat:"المدن"},
+{word:"باتنة",cat:"المدن"},
+{word:"بسكرة",cat:"المدن"},
+{word:"تلمسان",cat:"المدن"},
+{word:"سكيكدة",cat:"المدن"},
+{word:"قالمة",cat:"المدن"},
+
+/* ===== 13 الأماكن ===== */
+
+{word:"مدرسة",cat:"الأماكن"},
+{word:"مسجد",cat:"الأماكن"},
+{word:"حديقة",cat:"الأماكن"},
+{word:"مستشفى",cat:"الأماكن"},
+{word:"مطار",cat:"الأماكن"},
+{word:"سوق",cat:"الأماكن"},
+{word:"ملعب",cat:"الأماكن"},
+{word:"مكتبة",cat:"الأماكن"},
+{word:"مطعم",cat:"الأماكن"},
+{word:"فندق",cat:"الأماكن"},
+
+/* ===== 14 الأدوات ===== */
+
+{word:"كتاب",cat:"الأدوات"},
+{word:"قلم",cat:"الأدوات"},
+{word:"مقص",cat:"الأدوات"},
+{word:"مسطرة",cat:"الأدوات"},
+{word:"ممحاة",cat:"الأدوات"},
+{word:"مبراة",cat:"الأدوات"},
+{word:"مفتاح",cat:"الأدوات"},
+{word:"مطرقة",cat:"الأدوات"},
+{word:"منشار",cat:"الأدوات"},
+{word:"مفك",cat:"الأدوات"},
+
+/* ===== 15 الطعام ===== */
+
+{word:"خبز",cat:"الطعام"},
+{word:"أرز",cat:"الطعام"},
+{word:"لحم",cat:"الطعام"},
+{word:"دجاج",cat:"الطعام"},
+{word:"سمك",cat:"الطعام"},
+{word:"بيض",cat:"الطعام"},
+{word:"جبن",cat:"الطعام"},
+{word:"حليب",cat:"الطعام"},
+{word:"كسكسي",cat:"الطعام"},
+{word:"سلطة",cat:"الطعام"},
+
+/* ===== 16 الملابس ===== */
+
+{word:"قميص",cat:"الملابس"},
+{word:"سروال",cat:"الملابس"},
+{word:"حذاء",cat:"الملابس"},
+{word:"قبعة",cat:"الملابس"},
+{word:"معطف",cat:"الملابس"},
+{word:"سترة",cat:"الملابس"},
+{word:"جوارب",cat:"الملابس"},
+{word:"فستان",cat:"الملابس"},
+{word:"عباءة",cat:"الملابس"},
+{word:"عمامة",cat:"الملابس"},
+
+/* ===== 17 المواصلات ===== */
+
+{word:"سيارة",cat:"المواصلات"},
+{word:"حافلة",cat:"المواصلات"},
+{word:"قطار",cat:"المواصلات"},
+{word:"طائرة",cat:"المواصلات"},
+{word:"سفينة",cat:"المواصلات"},
+{word:"دراجة",cat:"المواصلات"},
+{word:"شاحنة",cat:"المواصلات"},
+{word:"جرار",cat:"المواصلات"},
+{word:"تاكسي",cat:"المواصلات"},
+
+/* ===== 18 جسم الإنسان ===== */
+
+{word:"رأس",cat:"جسم الإنسان"},
+{word:"عين",cat:"جسم الإنسان"},
+{word:"أذن",cat:"جسم الإنسان"},
+{word:"أنف",cat:"جسم الإنسان"},
+{word:"فم",cat:"جسم الإنسان"},
+{word:"يد",cat:"جسم الإنسان"},
+{word:"قدم",cat:"جسم الإنسان"},
+{word:"قلب",cat:"جسم الإنسان"},
+{word:"عقل",cat:"جسم الإنسان"},
+{word:"شعر",cat:"جسم الإنسان"},
+
+/* ===== 19 الرياضة ===== */
+
+{word:"كرة",cat:"الرياضة"},
+{word:"سباحة",cat:"الرياضة"},
+{word:"جري",cat:"الرياضة"},
+{word:"تنس",cat:"الرياضة"},
+{word:"جودو",cat:"الرياضة"},
+{word:"ملاكمة",cat:"الرياضة"},
+{word:"قفز",cat:"الرياضة"},
+{word:"ملعب",cat:"الرياضة"},
+
+/* ===== 20 المدرسة ===== */
+
+{word:"كتاب",cat:"المدرسة"},
+{word:"دفتر",cat:"المدرسة"},
+{word:"قلم",cat:"المدرسة"},
+{word:"سبورة",cat:"المدرسة"},
+{word:"طبشور",cat:"المدرسة"},
+{word:"حقيبة",cat:"المدرسة"},
+{word:"ممحاة",cat:"المدرسة"},
+{word:"مسطرة",cat:"المدرسة"},
+{word:"معلم",cat:"المدرسة"},
+
+/* ===== 21 التكنولوجيا ===== */
+
+{word:"حاسوب",cat:"التكنولوجيا"},
+{word:"هاتف",cat:"التكنولوجيا"},
+{word:"شاشة",cat:"التكنولوجيا"},
+{word:"لوحة",cat:"التكنولوجيا"},
+{word:"فأرة",cat:"التكنولوجيا"},
+{word:"طابعة",cat:"التكنولوجيا"},
+{word:"كاميرا",cat:"التكنولوجيا"},
+{word:"إنترنت",cat:"التكنولوجيا"},
+{word:"برنامج",cat:"التكنولوجيا"},
+
+/* ===== 22 الرياضيات ===== */
+
+{word:"عدد",cat:"الرياضيات"},
+{word:"جمع",cat:"الرياضيات"},
+{word:"طرح",cat:"الرياضيات"},
+{word:"ضرب",cat:"الرياضيات"},
+{word:"قسمة",cat:"الرياضيات"},
+{word:"كسر",cat:"الرياضيات"},
+{word:"زاوية",cat:"الرياضيات"},
+{word:"مربع",cat:"الرياضيات"},
+{word:"مثلث",cat:"الرياضيات"},
+{word:"دائرة",cat:"الرياضيات"},
+
+/* ===== 23 الفيزياء ===== */
+
+{word:"قوة",cat:"الفيزياء"},
+{word:"سرعة",cat:"الفيزياء"},
+{word:"طاقة",cat:"الفيزياء"},
+{word:"ضوء",cat:"الفيزياء"},
+{word:"حرارة",cat:"الفيزياء"},
+{word:"صوت",cat:"الفيزياء"},
+{word:"ضغط",cat:"الفيزياء"},
+{word:"كتلة",cat:"الفيزياء"},
+{word:"حركة",cat:"الفيزياء"},
+
+/* ===== 24 الكيمياء ===== */
+
+{word:"ماء",cat:"الكيمياء"},
+{word:"أكسجين",cat:"الكيمياء"},
+{word:"هيدروجين",cat:"الكيمياء"},
+{word:"كربون",cat:"الكيمياء"},
+{word:"حديد",cat:"الكيمياء"},
+{word:"نحاس",cat:"الكيمياء"},
+{word:"ملح",cat:"الكيمياء"},
+{word:"حمض",cat:"الكيمياء"},
+{word:"ذرة",cat:"الكيمياء"},
+{word:"مادة",cat:"الكيمياء"},
+
+/* ===== 25 العلوم ===== */
+
+{word:"خلية",cat:"العلوم"},
+{word:"ذرة",cat:"العلوم"},
+{word:"نبات",cat:"العلوم"},
+{word:"حيوان",cat:"العلوم"},
+{word:"جسم",cat:"العلوم"},
+{word:"طاقة",cat:"العلوم"},
+{word:"مادة",cat:"العلوم"},
+{word:"تجربة",cat:"العلوم"},
+{word:"مجهر",cat:"العلوم"},
+
+/* ===== 26 الأسرة ===== */
+
+{word:"أب",cat:"الأسرة"},
+{word:"أم",cat:"الأسرة"},
+{word:"أخ",cat:"الأسرة"},
+{word:"أخت",cat:"الأسرة"},
+{word:"جد",cat:"الأسرة"},
+{word:"جدة",cat:"الأسرة"},
+{word:"عم",cat:"الأسرة"},
+{word:"خال",cat:"الأسرة"},
+{word:"ابن",cat:"الأسرة"},
+{word:"بنت",cat:"الأسرة"},
+
+/* ===== 27 الإسلام ===== */
+
+{word:"صلاة",cat:"الإسلام"},
+{word:"زكاة",cat:"الإسلام"},
+{word:"صيام",cat:"الإسلام"},
+{word:"حج",cat:"الإسلام"},
+{word:"دعاء",cat:"الإسلام"},
+{word:"ذكر",cat:"الإسلام"},
+{word:"توبة",cat:"الإسلام"},
+{word:"وضوء",cat:"الإسلام"},
+{word:"مسجد",cat:"الإسلام"},
+{word:"قرآن",cat:"الإسلام"},
+
+/* ===== 28 القرآن الكريم ===== */
+
+{word:"الله",cat:"القرآن الكريم"},
+{word:"قرآن",cat:"القرآن الكريم"},
+{word:"كتاب",cat:"القرآن الكريم"},
+{word:"هدى",cat:"القرآن الكريم"},
+{word:"نور",cat:"القرآن الكريم"},
+{word:"حق",cat:"القرآن الكريم"},
+{word:"رحمة",cat:"القرآن الكريم"},
+{word:"مغفرة",cat:"القرآن الكريم"},
+{word:"نعمة",cat:"القرآن الكريم"},
+{word:"رزق",cat:"القرآن الكريم"},
+{word:"جنة",cat:"القرآن الكريم"},
+{word:"جهنم",cat:"القرآن الكريم"},
+{word:"نار",cat:"القرآن الكريم"},
+{word:"ماء",cat:"القرآن الكريم"},
+{word:"شمس",cat:"القرآن الكريم"},
+{word:"قمر",cat:"القرآن الكريم"},
+{word:"سماء",cat:"القرآن الكريم"},
+{word:"أرض",cat:"القرآن الكريم"},
+{word:"جبال",cat:"القرآن الكريم"},
+{word:"بحر",cat:"القرآن الكريم"},
+{word:"نهر",cat:"القرآن الكريم"},
+{word:"شجر",cat:"القرآن الكريم"},
+{word:"نخل",cat:"القرآن الكريم"},
+{word:"عنب",cat:"القرآن الكريم"},
+{word:"زيتون",cat:"القرآن الكريم"},
+{word:"عسل",cat:"القرآن الكريم"},
+{word:"لبن",cat:"القرآن الكريم"},
+{word:"لؤلؤ",cat:"القرآن الكريم"},
+{word:"ذهب",cat:"القرآن الكريم"},
+{word:"فضة",cat:"القرآن الكريم"},
+{word:"ملائكة",cat:"القرآن الكريم"},
+{word:"أنبياء",cat:"القرآن الكريم"},
+{word:"رسول",cat:"القرآن الكريم"},
+{word:"مؤمنون",cat:"القرآن الكريم"},
+{word:"متقون",cat:"القرآن الكريم"},
+{word:"صابرون",cat:"القرآن الكريم"},
+{word:"ظالمون",cat:"القرآن الكريم"},
+{word:"كافرون",cat:"القرآن الكريم"},
+{word:"شيطان",cat:"القرآن الكريم"},
+{word:"إبليس",cat:"القرآن الكريم"},
+{word:"افاسقيناكموه",cat:"القرآن الكريم"},
+
+/* ===== 29 أسماء الأنبياء ===== */
+
+{word:"آدم",cat:"الأنبياء"},
+{word:"نوح",cat:"الأنبياء"},
+{word:"هود",cat:"الأنبياء"},
+{word:"صالح",cat:"الأنبياء"},
+{word:"إبراهيم",cat:"الأنبياء"},
+{word:"لوط",cat:"الأنبياء"},
+{word:"إسماعيل",cat:"الأنبياء"},
+{word:"إسحاق",cat:"الأنبياء"},
+{word:"يعقوب",cat:"الأنبياء"},
+{word:"يوسف",cat:"الأنبياء"},
+{word:"شعيب",cat:"الأنبياء"},
+{word:"أيوب",cat:"الأنبياء"},
+{word:"موسى",cat:"الأنبياء"},
+{word:"هارون",cat:"الأنبياء"},
+{word:"داود",cat:"الأنبياء"},
+{word:"سليمان",cat:"الأنبياء"},
+{word:"إلياس",cat:"الأنبياء"},
+{word:"اليسع",cat:"الأنبياء"},
+{word:"يونس",cat:"الأنبياء"},
+{word:"زكريا",cat:"الأنبياء"},
+{word:"يحيى",cat:"الأنبياء"},
+{word:"عيسى",cat:"الأنبياء"},
+{word:"محمد",cat:"الأنبياء"},
+
+/* ===== 30 الأسماء ===== */
+
+{word:"نجيب",cat:"الأسماء"},
+{word:"آدم",cat:"الأسماء"},
+{word:"زينب",cat:"الأسماء"},
+{word:"شهد",cat:"الأسماء"},
+{word:"أسامة",cat:"الأسماء"},
+{word:"سارة",cat:"الأسماء"},
+{word:"أيمن",cat:"الأسماء"},
+{word:"محمود",cat:"الأسماء"},
+{word:"بشير",cat:"الأسماء"},
+{word:"جمال",cat:"الأسماء"},
+{word:"نبيل",cat:"الأسماء"},
+{word:"محمد",cat:"الأسماء"},
+{word:"علي",cat:"الأسماء"},
+{word:"عمر",cat:"الأسماء"},
+{word:"يوسف",cat:"الأسماء"},
+{word:"مريم",cat:"الأسماء"},
+{word:"فاطمة",cat:"الأسماء"},
+{word:"أحمد",cat:"الأسماء"}
+
+];
+
+
+/* =========================================================
+   متغيرات اللعبة
+========================================================= */
+
+let deck = [];
+let currentIndex = 0;
+let currentWord = "";
+let scrambled = [];
+let answer = [];
+let usedFlags = [];
+
+let score = 0;
+let tries = 3;
+let hintUsed = false;
+
+let selectedCategory = "الكل";
+
+
+/* =========================================================
+   عناصر الصفحة
+========================================================= */
+
+const answerArea =
+document.getElementById('answerArea');
+
+const lettersArea =
+document.getElementById('lettersArea');
+
+const messageEl =
+document.getElementById('message');
+
+const hintText =
+document.getElementById('hintText');
+
+const scoreVal =
+document.getElementById('scoreVal');
+
+const triesVal =
+document.getElementById('triesVal');
+
+const roundVal =
+document.getElementById('roundVal');
+
+const categoryLabel =
+document.getElementById('categoryLabel');
+
+const categoryButtons =
+document.getElementById('categoryButtons');
+
+
+/* =========================================================
+   خلط المصفوفة
+========================================================= */
+
+function shuffleArray(arr){
+
+  const a = [...arr];
+
+  for(let i=a.length-1;i>0;i--){
+
+    const j =
+      Math.floor(Math.random()*(i+1));
+
+    [a[i],a[j]] =
+    [a[j],a[i]];
+  }
+
+  return a;
+}
+
+
+/* =========================================================
+   إنشاء أزرار الأصناف
+========================================================= */
+
+function buildCategoryButtons(){
+
+  const categories = [
+    "الكل",
+    ...new Set(wordBank.map(item => item.cat))
+  ];
+
+  categoryButtons.innerHTML = "";
+
+  categories.forEach(cat => {
+
+    const btn =
+      document.createElement("button");
+
+    btn.textContent = cat;
+
+    if(cat === selectedCategory){
+      btn.classList.add("active");
+    }
+
+    btn.onclick = () => {
+
+      selectedCategory = cat;
+
+      currentIndex = 0;
+
+      buildDeck();
+
+      updateCategoryButtons();
+
+      startRound();
+    };
+
+    categoryButtons.appendChild(btn);
+  });
+}
+
+
+/* =========================================================
+   تحديث حالة أزرار الأصناف
+========================================================= */
+
+function updateCategoryButtons(){
+
+  const buttons =
+    categoryButtons.querySelectorAll("button");
+
+  buttons.forEach(btn => {
+
+    btn.classList.toggle(
+      "active",
+      btn.textContent === selectedCategory
+    );
+
+  });
+}
+
+
+/* =========================================================
+   إنشاء مجموعة الكلمات
+========================================================= */
+
+function buildDeck(){
+
+  let source;
+
+  if(selectedCategory === "الكل"){
+
+    source = wordBank;
+
+  }else{
+
+    source =
+      wordBank.filter(
+        item => item.cat === selectedCategory
+      );
+  }
+
+  deck = shuffleArray(source);
+}
+
+
+/* =========================================================
+   بدء الجولة
+========================================================= */
+
+function startRound(){
+
+  if(deck.length === 0){
+
+    showMessage(
+      "لا توجد كلمات في هذا الصنف",
+      "err"
+    );
+
+    return;
+  }
+
+  if(currentIndex >= deck.length){
+
+    buildDeck();
+
+    currentIndex = 0;
+  }
+
+  const entry =
+    deck[currentIndex];
+
+  currentWord =
+    entry.word;
+
+  categoryLabel.textContent =
+    "التصنيف: " + entry.cat;
+
+  roundVal.textContent =
+    (currentIndex + 1) +
+    " / " +
+    deck.length;
+
+
+  let letters =
+    currentWord.split('');
+
+
+  let attempt = 0;
+
+  do{
+
+    scrambled =
+      shuffleArray(letters);
+
+    attempt++;
+
+  }while(
+    scrambled.join('') === currentWord &&
+    attempt < 10
+  );
+
+
+  usedFlags =
+    new Array(scrambled.length)
+    .fill(false);
+
+  answer = [];
+
+  hintUsed = false;
+
+  messageEl.textContent = "";
+
+  messageEl.className = "message";
+
+  hintText.textContent = "";
+
+
+  renderAnswer();
+
+  renderLetters();
+}
+
+
+/* =========================================================
+   عرض منطقة الإجابة
+========================================================= */
+
+function renderAnswer(){
+
+  answerArea.innerHTML = "";
+
+  for(
+    let i=0;
+    i<currentWord.length;
+    i++
+  ){
+
+    const slot =
+      document.createElement('div');
+
+
+    if(answer[i] !== undefined){
+
+      slot.className =
+        "slot filled";
+
+      slot.textContent =
+        answer[i].ch;
+
+      slot.onclick =
+        () => removeFromAnswer(i);
+
+    }else{
+
+      slot.className =
+        "slot";
+    }
+
+    answerArea.appendChild(slot);
+  }
+}
+
+
+/* =========================================================
+   عرض الحروف
+========================================================= */
+
+function renderLetters(){
+
+  lettersArea.innerHTML = "";
+
+  scrambled.forEach((ch, idx) => {
+
+    const btn =
+      document.createElement('button');
+
+    btn.className =
+      "tile" +
+      (usedFlags[idx] ? " used" : "");
+
+    btn.textContent = ch;
+
+    btn.onclick =
+      () => addToAnswer(ch, idx);
+
+    lettersArea.appendChild(btn);
+  });
+}
+
+
+/* =========================================================
+   إضافة حرف للإجابة
+========================================================= */
+
+function addToAnswer(ch, idx){
+
+  if(usedFlags[idx])
+    return;
+
+  if(answer.length >= currentWord.length)
+    return;
+
+  usedFlags[idx] = true;
+
+  answer.push({
+    ch:ch,
+    idx:idx
+  });
+
+  renderAnswer();
+
+  renderLetters();
+}
+
+
+/* =========================================================
+   حذف حرف من الإجابة
+========================================================= */
+
+function removeFromAnswer(slotIndex){
+
+  const item =
+    answer[slotIndex];
+
+  if(!item)
+    return;
+
+  usedFlags[item.idx] =
+    false;
+
+  answer.splice(
+    slotIndex,
+    1
+  );
+
+  renderAnswer();
+
+  renderLetters();
+}
+
+
+/* =========================================================
+   التحقق من الإجابة
+========================================================= */
+
+function checkAnswer(){
+
+  if(
+    answer.length !==
+    currentWord.length
+  ){
+
+    showMessage(
+      "أكمل كل الحروف أولاً!",
+      "err"
+    );
+
+    return;
+  }
+
+
+  const built =
+    answer.map(a => a.ch).join('');
+
+
+  if(built === currentWord){
+
+    const points =
+      hintUsed ? 5 : 10;
+
+    score += points;
+
+    scoreVal.textContent =
+      score;
+
+    showMessage(
+      "أحسنت! +" +
+      points +
+      " نقطة 🎉",
+      "ok"
+    );
+
+    currentIndex++;
+
+    setTimeout(
+      startRound,
+      1100
+    );
+
+  }else{
+
+    tries--;
+
+    triesVal.textContent =
+      tries;
+
+
+    if(tries <= 0){
+
+      showMessage(
+        "انتهت المحاولات، الكلمة كانت: " +
+        currentWord,
+        "err"
+      );
+
+      tries = 3;
+
+      triesVal.textContent =
+        tries;
+
+      currentIndex++;
+
+      setTimeout(
+        startRound,
+        1600
+      );
+
+    }else{
+
+      showMessage(
+        "محاولة خاطئة، حاول مجدداً",
+        "err"
+      );
+    }
+  }
+}
+
+
+/* =========================================================
+   التراجع
+========================================================= */
+
+function undoLast(){
+
+  if(answer.length === 0)
+    return;
+
+  removeFromAnswer(
+    answer.length - 1
+  );
+}
+
+
+/* =========================================================
+   التلميح
+========================================================= */
+
+function showHint(){
+
+  hintUsed = true;
+
+  hintText.textContent =
+    "أول حرف: " +
+    currentWord[0] +
+    " — عدد الحروف: " +
+    currentWord.length;
+}
+
+
+/* =========================================================
+   تخطي الكلمة
+========================================================= */
+
+function skipWord(){
+
+  showMessage(
+    "تم التخطي، الكلمة كانت: " +
+    currentWord,
+    "err"
+  );
+
+  currentIndex++;
+
+  setTimeout(
+    startRound,
+    900
+  );
+}
+
+
+/* =========================================================
+   الرسائل
+========================================================= */
+
+function showMessage(text,type){
+
+  messageEl.textContent =
+    text;
+
+  messageEl.className =
+    "message " + type;
+}
+
+
+/* =========================================================
+   ربط الأزرار
+========================================================= */
+
+document.getElementById(
+  'checkBtn'
+).onclick = checkAnswer;
+
+document.getElementById(
+  'undoBtn'
+).onclick = undoLast;
+
+document.getElementById(
+  'hintBtn'
+).onclick = showHint;
+
+document.getElementById(
+  'skipBtn'
+).onclick = skipWord;
+
+
+/* =========================================================
+   خلفية النجوم
+========================================================= */
+
+function createStars(){
+
+  const container =
+    document.getElementById('stars');
+
+  const count = 90;
+
+  for(
+    let i=0;
+    i<count;
+    i++
+  ){
+
+    const s =
+      document.createElement('div');
+
+    s.className = 'star';
+
+    const size =
+      Math.random()*2 + 1;
+
+    s.style.width =
+      size + 'px';
+
+    s.style.height =
+      size + 'px';
+
+    s.style.top =
+      Math.random()*100 + '%';
+
+    s.style.left =
+      Math.random()*100 + '%';
+
+    s.style.animationDuration =
+      (Math.random()*3 + 2) + 's';
+
+    s.style.animationDelay =
+      (Math.random()*3) + 's';
+
+    container.appendChild(s);
+  }
+}
+
+
+/* =========================================================
+   تشغيل اللعبة
+========================================================= */
+
+createStars();
+
+buildCategoryButtons();
+
+buildDeck();
+
+startRound();
+
+</script>
+
+</body>
+</html>
+```
